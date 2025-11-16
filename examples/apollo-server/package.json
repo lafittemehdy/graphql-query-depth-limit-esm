@@ -1,0 +1,20 @@
+{
+  "name": "apollo-server-example",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc && node dist/index.js",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@apollo/server": "^4.11.2",
+    "graphql": "^16.12.0",
+    "graphql-query-depth-limit-esm": "file:../../"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  }
+}

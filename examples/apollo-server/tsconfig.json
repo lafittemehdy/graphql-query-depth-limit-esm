@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "outDir": "./dist",
+    "rootDir": "./",
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022"
+  },
+  "exclude": ["dist", "node_modules"],
+  "include": ["*.ts"]
+}

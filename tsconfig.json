@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "module": "Node16",
+    "moduleResolution": "node16",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "ES2022"
+  },
+  "exclude": ["dist", "node_modules", "**/*.test.ts", "**/__tests__"],
+  "include": ["src/**/*"]
+}
