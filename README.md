@@ -1,6 +1,16 @@
 # graphql-query-depth-limit-esm
 
+[![CI](https://github.com/lafittemehdy/graphql-query-depth-limit-esm/actions/workflows/ci.yml/badge.svg)](https://github.com/lafittemehdy/graphql-query-depth-limit-esm/actions/workflows/ci.yml)
+[![Publish](https://github.com/lafittemehdy/graphql-query-depth-limit-esm/actions/workflows/publish.yml/badge.svg)](https://github.com/lafittemehdy/graphql-query-depth-limit-esm/actions/workflows/publish.yml)
+[![Pages](https://github.com/lafittemehdy/graphql-query-depth-limit-esm/actions/workflows/pages.yml/badge.svg)](https://github.com/lafittemehdy/graphql-query-depth-limit-esm/actions/workflows/pages.yml)
+[![npm version](https://img.shields.io/npm/v/graphql-query-depth-limit-esm?logo=npm)](https://www.npmjs.com/package/graphql-query-depth-limit-esm)
+[![npm downloads](https://img.shields.io/npm/dm/graphql-query-depth-limit-esm?logo=npm)](https://www.npmjs.com/package/graphql-query-depth-limit-esm)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+
 Production-ready GraphQL query depth limiting as a validation rule. Prevents denial-of-service attacks from deeply nested queries by enforcing a configurable maximum depth.
+
+Explore the library's internal function architecture with the **[interactive node-based visualization](https://lafittemehdy.github.io/graphql-query-depth-limit-esm/architecture.html)**.
 
 ## Features
 
@@ -32,7 +42,8 @@ yarn add graphql-query-depth-limit-esm graphql
 ## Quick Start
 
 ```ts
-import { depthDirectiveTypeDefs, depthLimit } from "graphql-query-depth-limit-esm";
+import { validate } from "graphql";
+import { depthLimit } from "graphql-query-depth-limit-esm";
 
 const errors = validate(schema, document, [depthLimit(7, { useDirective: true })]);
 ```
@@ -129,7 +140,7 @@ When multiple interfaces define `@depth` on the same field, the **strictest (low
 
 The [`useDirective`](#depthlimitoptions) option is `false` by default. This is intentional:
 
-- **Convention in GraphQL validation rules.** Standard rules like `NoUnusedFragmentsRule` or `KnownDirectivesRule` are configured explicitly — custom rules follow the same pattern.
+- **Follows GraphQL Convention.** Standard rules like `NoUnusedFragmentsRule` or `KnownDirectivesRule` are configured explicitly, and this library follows that same pattern for consistency.
 - **No hidden side effects.** Users who only need a global depth cap get exactly that, without the engine scanning every field definition for directives they never added.
 - **Predictable behavior.** Enabling directive support is a deliberate choice, making it clear in code review that per-field overrides are in play.
 
@@ -213,6 +224,41 @@ const rule = depthLimit(5, { ignore: ["metadata"], ignoreMode: "skip" });
 
 With `"exclude"`, the ignored field does not increment the depth counter, but its children are still traversed and subject to depth limits. This prevents attackers from nesting arbitrarily deep queries under ignored composite fields.
 
+If the ignored field is recursive (for example, `friends -> friends`), depth can remain flat along that edge because the ignored field keeps suppressing increments. To prevent this, enable [`limitIgnoredRecursion`](#depthlimitoptions), use `ignoreMode: "skip"`, or cap the field with `@depth`.
+
+### Recursive Ignore Guard
+
+Enable [`limitIgnoredRecursion`](#depthlimitoptions) to prevent unbounded traversal when using `ignoreMode: "exclude"` on recursive fields:
+
+```ts
+const rule = depthLimit(10, {
+  ignore: ["friends"],
+  ignoreMode: "exclude",
+  limitIgnoredRecursion: true,
+});
+```
+
+When enabled, the first ignored field occurrence on a path is still excluded, but repeated occurrences on the same path increment depth normally.
+
+### Short-Circuit Control
+
+By default, short-circuit behavior is auto-detected:
+
+- No callback: short-circuits on first violation (`shortCircuit: true`)
+- Callback provided: traverses full tree for exact depth (`shortCircuit: false`)
+
+You can override this explicitly:
+
+```ts
+// Force full traversal even without a callback
+const exactRule = depthLimit(5, { shortCircuit: false });
+
+// Force early bailout even with a callback
+const fastRule = depthLimit(5, { shortCircuit: true }, (depths) => {
+  console.log(depths);
+});
+```
+
 ### Case-Insensitive Matching
 
 Enable [`caseInsensitiveIgnore`](#depthlimitoptions) to match string ignore rules regardless of casing:
@@ -264,7 +310,7 @@ const rule = depthLimit(10, (depths) => {
 });
 ```
 
-> **Note:** When a callback is provided, the engine traverses the full query to report accurate maximum depths. Without a callback, the engine **short-circuits** on the first violation for maximum performance.
+> **Note:** By default, providing a callback disables short-circuiting so the engine can report accurate maximum depths. If you explicitly set `shortCircuit: true`, traversal still bails early and reported depths are lower bounds (`"at least N"`). Without a callback, the engine short-circuits by default for maximum performance.
 
 ## API Reference
 
@@ -304,9 +350,11 @@ directive @depth(max: Int!) on FIELD_DEFINITION
 | `caseInsensitiveIgnore` | `boolean` | `false` | Case-insensitive matching for string ignore rules |
 | `directiveMode` | [`DirectiveMode`](#directivemode) | `"cap"` | Controls how `@depth` directives interact with the global `maxDepth` |
 | `ignore` | [`IgnoreRule \| IgnoreRule[]`](#ignorerule) | `undefined` | Fields to skip during depth calculation |
-| `ignoreMode` | [`IgnoreMode`](#ignoremode) | `"exclude"` | Controls whether ignored fields skip their entire subtree or only the depth increment |
 | `ignoreIntrospection` | [`IntrospectionMode`](#introspectionmode) | `"typename"` | Controls which introspection fields are ignored |
-| `useDirective` | `boolean` | `false` | Read `@depth(max: Int!)` directives from field definitions |
+| `ignoreMode` | [`IgnoreMode`](#ignoremode) | `"exclude"` | Controls whether ignored fields skip their entire subtree or only the depth increment |
+| `limitIgnoredRecursion` | `boolean` | `false` | In `ignoreMode: "exclude"`, increments depth for repeated ignored fields on the same path to prevent unbounded recursion |
+| `shortCircuit` | `boolean` | `undefined` (auto) | Auto: `true` without callback, `false` with callback. Set explicitly to force early bailout or full traversal |
+| `useDirective` | `boolean` | `false` | Read `@depth(max: Int!)` directives from field definitions. Requires a schema in validation context; without one, directive resolution falls back to the global `maxDepth`. |
 
 ### `DirectiveMode`
 
@@ -348,13 +396,25 @@ type IgnoreRule = string | RegExp | ((fieldName: string) => boolean);
 type DepthCallback = (depths: Record<string, number>) => void;
 ```
 
+### `ERROR_CODES`
+
+```ts
+const ERROR_CODES = {
+  IGNORE_RULE_ERROR: "IGNORE_RULE_ERROR",
+  QUERY_TOO_DEEP: "QUERY_TOO_DEEP",
+} as const;
+```
+
+- `QUERY_TOO_DEEP`: query depth exceeded the allowed limit
+- `IGNORE_RULE_ERROR`: a user-provided ignore rule (`RegExp` or function) threw at validation time
+
 ## Error Extensions
 
-When a query exceeds the depth limit, the reported `GraphQLError` includes structured extensions for programmatic access:
+Depth violations include structured extensions for programmatic access:
 
 ```json
 {
-  "message": "'GetUser' has depth 8 which exceeds maximum operation depth of 5 (at user.friends.friends)",
+  "message": "'GetUser' has depth 8 which exceeds maximum allowed depth of 5 (at user.friends.friends)",
   "extensions": {
     "code": "QUERY_TOO_DEEP",
     "depth": 8,
@@ -368,10 +428,21 @@ When a query exceeds the depth limit, the reported `GraphQLError` includes struc
 | Field | Type | Description |
 |---|---|---|
 | `code` | `string` | Always `"QUERY_TOO_DEEP"` |
-| `depth` | `number` | The depth found (exact when `shortCircuit` is `false`, lower bound when `true`) |
+| `depth` | `number` | The query's calculated depth. If `shortCircuit` is `true`, this is the depth where the violation was detected, which may not be the absolute maximum depth. |
 | `maxDepth` | `number` | The maximum allowed depth that was exceeded |
 | `path` | `string[]` | Field path from the operation root to the violation point (uses aliases when present) |
-| `shortCircuit` | `boolean` | Whether the engine short-circuited (no callback) — if `true`, `depth` is a lower bound ("at least N") |
+| `shortCircuit` | `boolean` | Whether the engine short-circuited. If `true`, `depth` is a lower bound ("at least N"), including when `shortCircuit: true` is explicitly forced with a callback. |
+
+If an ignore rule throws, validation reports:
+
+```json
+{
+  "message": "Ignore rule function threw for field \"friends\": boom",
+  "extensions": {
+    "code": "IGNORE_RULE_ERROR"
+  }
+}
+```
 
 ## How Depth Is Calculated
 
@@ -439,21 +510,6 @@ depthLimit(10, { directiveMode: "override", useDirective: true });
 **v2:** When no callback is provided, the engine stops traversal immediately on the first violation. This is a performance improvement and DoS protection — a deeply nested query with a small `maxDepth` no longer burns CPU traversing thousands of levels.
 
 **Impact:** This is transparent to most users. The only observable difference is that error messages may report the depth at the first violation rather than the deepest violation when multiple branches exceed the limit. If you need the true maximum depth, provide a callback.
-
-## Architecture Visualization
-
-Explore the library's internal function architecture with an interactive node-based visualization:
-
-GitHub file: [`examples/visualization/architecture.html`](examples/visualization/architecture.html)
-Live preview (GitHub Pages): https://lafittemehdy.github.io/graphql-query-depth-limit-esm/architecture.html
-
-```bash
-open examples/visualization/architecture.html
-```
-
-If the live preview URL is not active yet, enable **Settings > Pages > Build and deployment > GitHub Actions** in the repository.
-
-Each function is rendered as a node with typed input/output ports, connected by the call graph. Color-coded by module with glassmorphism styling. Zoom, pan, click nodes for detailed signatures, and filter by module.
 
 ## License
 

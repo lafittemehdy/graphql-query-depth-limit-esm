@@ -1323,7 +1323,7 @@
 		<div class="header-center" id="module-filters"></div>
 		<div class="header-right">
 			<input type="text" class="header-search" id="node-search" placeholder="Search nodes..." aria-label="Search nodes by name">
-			<button class="header-btn" id="fit-btn" title="Fit all nodes (F)" aria-label="Fit all nodes to viewport">Fit All</button>
+			<button type="button" class="header-btn" id="fit-btn" title="Fit all nodes (F)" aria-label="Fit all nodes to viewport">Fit All</button>
 		</div>
 	</header>
 
@@ -1333,6 +1333,7 @@
 	<main id="canvas">
 		<div id="viewport">
 			<svg id="connections" xmlns="http://www.w3.org/2000/svg">
+				<title>Graph node connections</title>
 				<defs>
 					<filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
 						<feGaussianBlur in="SourceGraphic" stdDeviation="3" />
@@ -1346,8 +1347,8 @@
 	     Detail Panel
 	     ============================================================ -->
 	<aside id="detail-panel">
-		<button id="panel-back" aria-label="Go back">&#8592;</button>
-		<button id="panel-close" aria-label="Close panel">&times;</button>
+		<button type="button" id="panel-back" aria-label="Go back">&#8592;</button>
+		<button type="button" id="panel-close" aria-label="Close panel">&times;</button>
 		<div class="panel-breadcrumbs" id="panel-breadcrumbs"></div>
 		<div id="panel-content"></div>
 	</aside>
