@@ -1,32 +1,8 @@
-# Source files (only dist/ should be published)
+.github/
+coverage/
 src/
-
-# Test files in dist
-dist/**/__tests__/
-dist/**/*.test.js
-dist/**/*.test.d.ts
-
-# Build configuration
+*.tsbuildinfo
 biome.json
 tsconfig.json
+tsup.config.ts
 vitest.config.ts
-
-# Development files
-.gitignore
-node_modules/
-*.log
-
-# Coverage and test output
-coverage/
-.nyc_output/
-
-# GitHub workflows
-.github/
-
-# Environment files
-.env
-.env.*
-
-# OS files
-.DS_Store
-Thumbs.db

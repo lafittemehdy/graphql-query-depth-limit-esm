@@ -1,17 +1,22 @@
 {
-  "compilerOptions": {
-    "declaration": true,
-    "declarationMap": true,
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "module": "Node16",
-    "moduleResolution": "node16",
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "skipLibCheck": true,
-    "strict": true,
-    "target": "ES2022"
-  },
-  "exclude": ["dist", "node_modules", "**/*.test.ts", "**/__tests__"],
-  "include": ["src/**/*"]
+	"compilerOptions": {
+		"declaration": true,
+		"declarationMap": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"isolatedModules": true,
+		"module": "Node16",
+		"moduleResolution": "node16",
+		"noFallthroughCasesInSwitch": true,
+		"noUncheckedIndexedAccess": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"outDir": "./dist",
+		"rootDir": "./src",
+		"skipLibCheck": true /* Intentional: only peer dep is graphql ^16 with locked range. Full lib checking slows builds and surfaces false positives from transitive @types packages. Strict source checking is enforced via "strict": true below. */,
+		"strict": true,
+		"target": "ES2022"
+	},
+	"exclude": ["**/__tests__", "**/*.test.ts", "dist", "node_modules"],
+	"include": ["src/**/*"]
 }

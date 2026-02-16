@@ -1,334 +1,270 @@
 # graphql-query-depth-limit-esm
 
-[![npm version](https://img.shields.io/npm/v/graphql-query-depth-limit-esm.svg)](https://www.npmjs.com/package/graphql-query-depth-limit-esm)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Build Status](https://github.com/lafittemehdy/graphql-query-depth-limit-esm/actions/workflows/test.yml/badge.svg)](https://github.com/lafittemehdy/graphql-query-depth-limit-esm/actions)
-
-Protect your GraphQL API by limiting query depth before execution.
-
-Prevents deeply nested queries from overloading your server. A lightweight, zero-dependency library that works with any GraphQL server (Apollo, Yoga, etc.) with native ESM and TypeScript support.
+Production-ready GraphQL query depth limiting as a validation rule. Prevents denial-of-service attacks from deeply nested queries by enforcing a configurable maximum depth.
 
 ## Features
 
-- **Native ESM & TypeScript:** Modern module support with full type safety
-- **Works Anywhere:** Compatible with any GraphQL-compliant server (Apollo, Yoga, etc.)
-- **Fragment Support:** Correctly handles fragment spreads and inline fragments
-- **Flexible Ignore Rules:** Skip specific fields using strings, RegExp, or custom functions
-- **Directive Support:** Field-specific depth limits using `@depth` directive
-- **Zero Dependencies:** Lightweight and focused (small bundle size)
-- **Well Tested:** Comprehensive test suite
+- **`@depth` directive** — per-field depth overrides via schema directives
+- **Alias-aware paths** — violation paths use aliases when present, matching the response shape
+- **Configurable introspection handling** — control whether `__schema` and `__type` count toward depth
+- **Callback support** — optional callback reports per-operation depth for monitoring
+- **Fragment-safe** — handles named fragments, inline fragments, and circular fragment detection
+- **Ignore rules** — skip fields by name, pattern, or custom function
+- **Interface directive inheritance** — `@depth` directives on interface fields apply to all implementors
+- **Short-circuit traversal** — stops immediately on first violation when no callback is provided
+- **Validation rule** — integrates directly with `graphql`'s `validate()` function
+- **Zero runtime dependencies** — only `graphql ^16` as a peer dependency
 
 ## Installation
 
 ```bash
-npm install graphql-query-depth-limit-esm
+pnpm add graphql-query-depth-limit-esm graphql
+```
+
+```bash
+npm install graphql-query-depth-limit-esm graphql
+```
+
+```bash
+yarn add graphql-query-depth-limit-esm graphql
 ```
 
 ## Quick Start
 
-### Apollo Server Integration
+```ts
+import { depthDirectiveTypeDefs, depthLimit } from "graphql-query-depth-limit-esm";
 
-```typescript
-import { ApolloServer } from '@apollo/server';
-import { startStandaloneServer } from '@apollo/server/standalone';
-import { depthLimit } from 'graphql-query-depth-limit-esm';
-
-// Step 1: Define your schema
-const typeDefs = `#graphql
-  directive @depth(max: Int!) on FIELD_DEFINITION
-
-  type Query {
-    # Regular user endpoint with depth limit of 3
-    user(id: ID!): User @depth(max: 3)
-
-    # Admin endpoint with higher depth limit
-    adminUser(id: ID!): User @depth(max: 10)
-
-    # Public endpoint without directive (uses global limit)
-    users: [User!]!
-  }
-
-  type User {
-    id: ID!
-    name: String!
-    email: String!
-    friends: [User!]!
-    posts: [Post!]!
-  }
-
-  type Post {
-    id: ID!
-    title: String!
-    author: User!
-  }
-`;
-
-// Step 2: Define your resolvers
-const resolvers = {
-  Query: {
-    user: (_: unknown, { id }: { id: string }) => ({
-      id,
-      name: "John Doe",
-      email: "john@example.com",
-      friends: [],
-      posts: [],
-    }),
-    adminUser: (_: unknown, { id }: { id: string }) => ({
-      id,
-      name: "Admin User",
-      email: "admin@example.com",
-      friends: [],
-      posts: [],
-    }),
-    users: () => [
-      {
-        id: "1",
-        name: "Alice",
-        email: "alice@example.com",
-        friends: [],
-        posts: [],
-      },
-    ],
-  },
-  User: {
-    friends: (parent: { id: string }) => [
-      {
-        id: `${parent.id}-friend`,
-        name: "Friend User",
-        email: "friend@example.com",
-        friends: [],
-        posts: [],
-      },
-    ],
-    posts: () => [],
-  },
-};
-
-// Step 3: Create and start the server with depth limiting
-const server = new ApolloServer({
-  typeDefs,
-  resolvers,
-  validationRules: [
-    // Global depth limit of 5 with directive support enabled
-    depthLimit(5, { useDirective: true }),
-  ],
-});
-
-const { url } = await startStandaloneServer(server, {
-  listen: { port: 4000 },
-});
-
-console.log(`🚀 Server ready at: ${url}`);
+const errors = validate(schema, document, [depthLimit(7, { useDirective: true })]);
 ```
 
-## How It Works
+The recommended way to use `graphql-query-depth-limit-esm` is the `@depth` directive — a global maximum protects your API, while per-field overrides can tighten limits (and can opt into deeper nesting when `directiveMode: "override"` is enabled).
 
-The library calculates query depth during GraphQL validation (before execution). Deeply nested queries are rejected before hitting your business logic.
+### Global Limit with Per-Field Overrides
 
-**Process:**
-1. Client sends a query
-2. Server parses and validates the query
-3. **Query depth calculation runs** (this library)
-4. If validation passes, query executes
-
-The library traverses the query AST to calculate depth. It correctly handles fragments and introspection fields, counting only fields that actually contribute to nesting.
-
----
-
-## Usage Examples
-
-### Basic Depth Limiting
-
-```typescript
-import { depthLimit } from 'graphql-query-depth-limit-esm';
-import { ApolloServer } from '@apollo/server';
-
-const server = new ApolloServer({
-  schema,
-  validationRules: [depthLimit(10)], // Maximum depth of 10
-});
-```
-
-### With Ignore Rules
-
-Skip specific fields from depth calculation:
-
-```typescript
-import { depthLimit } from 'graphql-query-depth-limit-esm';
-
-const server = new ApolloServer({
-  schema,
-  validationRules: [
-    depthLimit(10, {
-      ignore: [
-        'friends',              // Exact field name
-        /^internal/,            // RegExp pattern
-        (fieldName) => fieldName.startsWith('_'), // Custom function
-      ],
-    }),
-  ],
-});
-```
-
-### With Callback
-
-Monitor query depths:
-
-```typescript
-import { depthLimit } from 'graphql-query-depth-limit-esm';
-
-const server = new ApolloServer({
-  schema,
-  validationRules: [
-    depthLimit(10, undefined, (depths) => {
-      console.log('Query depths:', depths);
-      // Output: { "GetUser": 5, "GetPosts": 3 }
-    }),
-  ],
-});
-```
-
-### With @depth Directive
-
-Apply field-specific depth limits using the `@depth` directive:
-
-```typescript
-import { depthLimit } from 'graphql-query-depth-limit-esm';
-
-// First, add the directive to your schema
-const typeDefs = `#graphql
-  directive @depth(max: Int!) on FIELD_DEFINITION
-
-  type Query {
-    publicUser(id: ID!): User @depth(max: 2)
-    adminUser(id: ID!): User @depth(max: 10)
-  }
-
-  type User {
-    id: ID!
-    name: String!
-    friends: [User]
-  }
-`;
-
-const server = new ApolloServer({
-  typeDefs,
-  resolvers,
-  validationRules: [
-    depthLimit(5, { useDirective: true }),
-  ],
-});
-```
-
-**How it works:**
-- `publicUser` field has `@depth(max: 2)` - queries can only go 2 levels deep
-- `adminUser` field has `@depth(max: 10)` - queries can go 10 levels deep
-- Fields without `@depth` directive use the global limit (5 in this example)
-- The `@depth` directive can be combined with `@complexity` and other directives
-
-## How Depth is Calculated
-
-Depth is measured by counting nested field selections:
+Include [`depthDirectiveTypeDefs`](#depthdirectivetypedefs) in your schema to declare the `@depth` directive, then annotate individual fields:
 
 ```graphql
-query {
-  user {           # depth 1
-    posts {        # depth 2
-      comments {   # depth 3
-        author {   # depth 4
-          name     # depth 4 (scalar fields don't add depth)
-        }
-      }
-    }
-  }
-}
-# Total depth: 4
-```
-
-### What Doesn't Add Depth
-
-- **Fragment spreads** (`...FragmentName`) - The fragment's fields are counted, not the spread itself
-- **Inline fragments** (`... on Type { }`) - The inline fragment doesn't add depth
-- **Introspection fields** (`__typename`, `__schema`, `__type`, etc.)
-- **Fields matching ignore rules** - Skipped entirely from calculation
-- **Scalar/leaf fields** - Terminal nodes don't increase depth
-
-## Query Depth Examples
-
-**Schema:**
-```graphql
-type Query {
-  user(id: ID!): User
-}
+# depthDirectiveTypeDefs provides this automatically:
+# directive @depth(max: Int!) on FIELD_DEFINITION
 
 type User {
-  id: ID!
   name: String!
-  friends: [User]
-  posts: [Post]
+  profile: Profile!
+
+  # Self-referential — allow up to 3 levels of nesting
+  friends: [User!]! @depth(max: 3)
 }
 
 type Post {
-  id: ID!
   title: String!
-  comments: [Comment]
+  author: User!
+
+  # Recursive comments — allow up to 5 levels deep
+  comments: [Comment!]! @depth(max: 5)
 }
 
 type Comment {
-  id: ID!
-  body: String!
-  author: User
+  text: String!
+  replies: [Comment!]! @depth(max: 4)
 }
 ```
 
-| Query | Depth | Allowed (max 3)? |
-| :--- | :---: | :---: |
-| `{ user { id } }` | 1 | ✅ |
-| `{ user { friends { name } } }` | 2 | ✅ |
-| `{ user { posts { comments { body } } } }` | 3 | ✅ |
-| `{ user { posts { comments { author { name } } } } }` | 4 | ❌ |
-| `{ user { friends { friends { friends { name } } } } }` | 4 | ❌ |
+Build the schema with the directive type defs, then enable directive support via [`depthLimit()`](#depthlimitmaxdepth-options-callback):
 
-## Integration Examples
+```ts
+import { makeExecutableSchema } from "@graphql-tools/schema";
+import { depthDirectiveTypeDefs, depthLimit } from "graphql-query-depth-limit-esm";
+import { validate } from "graphql";
 
-### Apollo Server
+const schema = makeExecutableSchema({
+  typeDefs: [depthDirectiveTypeDefs, yourTypeDefs],
+  resolvers,
+});
 
-```typescript
-import { ApolloServer } from '@apollo/server';
-import { depthLimit } from 'graphql-query-depth-limit-esm';
+// Global max of 7 — @depth directives can tighten but never exceed this limit
+const errors = validate(schema, document, [
+  depthLimit(7, { useDirective: true }),
+]);
+```
+
+### Nested Directives
+
+When multiple `@depth` directives appear along a query path, the effective limit is the **strictest (minimum)** along that path. A child directive can tighten an ancestor's limit but never relax it:
+
+```graphql
+type Post {
+  # 3 levels from here (absolute max = currentDepth + 3)
+  comments: [Comment] @depth(max: 3)
+}
+
+type Comment {
+  text: String
+  # Wants 5 levels, but capped by the ancestor's limit
+  replies: [Comment] @depth(max: 5)
+}
+```
+
+This ensures a parent directive remains a hard ceiling for its entire subtree, preventing deeply nested child directives from punching through ancestor limits.
+
+> **Note:** By default (`directiveMode: "cap"`), directives can only **tighten** the global `maxDepth`, never relax it. If you need directives to override the global limit for specific subtrees, set `directiveMode: "override"`. See [`directiveMode`](#depthlimitoptions) for details.
+
+### Interface Directive Inheritance
+
+When a `@depth` directive is placed on an interface field, it applies to all concrete types implementing that interface — even if the concrete type's field definition has no directive:
+
+```graphql
+interface Node {
+  children: [Node!]! @depth(max: 3)
+}
+
+type TreeNode implements Node {
+  children: [Node!]!  # Inherits @depth(max: 3) from Node interface
+  label: String!
+}
+```
+
+When multiple interfaces define `@depth` on the same field, the **strictest (lowest)** limit is used.
+
+### Why Explicit Opt-In?
+
+The [`useDirective`](#depthlimitoptions) option is `false` by default. This is intentional:
+
+- **Convention in GraphQL validation rules.** Standard rules like `NoUnusedFragmentsRule` or `KnownDirectivesRule` are configured explicitly — custom rules follow the same pattern.
+- **No hidden side effects.** Users who only need a global depth cap get exactly that, without the engine scanning every field definition for directives they never added.
+- **Predictable behavior.** Enabling directive support is a deliberate choice, making it clear in code review that per-field overrides are in play.
+
+## Usage
+
+### Basic Depth Limiting
+
+For straightforward global limiting without per-field overrides, call [`depthLimit()`](#depthlimitmaxdepth-options-callback) with only a maximum depth:
+
+```ts
+import { depthLimit } from "graphql-query-depth-limit-esm";
+import { validate } from "graphql";
+
+// Reject queries deeper than 10 levels
+const rule = depthLimit(10);
+const errors = validate(schema, document, [rule]);
+```
+
+### With Apollo Server
+
+```ts
+import { ApolloServer } from "@apollo/server";
+import { depthLimit } from "graphql-query-depth-limit-esm";
 
 const server = new ApolloServer({
   schema,
-  validationRules: [depthLimit(10)],
+  validationRules: [depthLimit(7, { useDirective: true })],
 });
 ```
 
-### Express GraphQL
+### With Yoga
 
-```typescript
-import { graphqlHTTP } from 'express-graphql';
-import { depthLimit } from 'graphql-query-depth-limit-esm';
-
-app.use(
-  '/graphql',
-  graphqlHTTP({
-    schema,
-    validationRules: [depthLimit(10)],
-  }),
-);
-```
-
-### GraphQL Yoga
-
-```typescript
-import { createYoga } from 'graphql-yoga';
-import { depthLimit } from 'graphql-query-depth-limit-esm';
+```ts
+import { createYoga } from "graphql-yoga";
+import { depthLimit } from "graphql-query-depth-limit-esm";
 
 const yoga = createYoga({
   schema,
-  validationRules: [depthLimit(10)],
+  plugins: [
+    {
+      onValidate({ addValidationRule }) {
+        addValidationRule(depthLimit(7, { useDirective: true }));
+      },
+    },
+  ],
 });
 ```
+
+### Ignore Rules
+
+Skip specific fields during depth calculation using strings, regular expressions, or custom functions. See [`IgnoreRule`](#ignorerule) for the full type definition.
+
+```ts
+const rule = depthLimit(5, {
+  ignore: [
+    // Exact field name match
+    "metadata",
+
+    // Regular expression pattern
+    /.*Connection$/,
+
+    // Custom function
+    (fieldName) => fieldName.startsWith("internal"),
+  ],
+});
+```
+
+> **Warning:** When `ignoreMode: "skip"` is set and a field matches an ignore rule, its **entire subtree** is skipped — not just the depth increment for that field. This means all children, grandchildren, etc. are excluded from depth calculation entirely. Use ignore rules carefully on composite fields, as deeply nested subtrees under an ignored field will bypass depth protection.
+
+### Ignore Mode
+
+By default, ignored fields only skip the depth increment while still traversing children. Use [`ignoreMode`](#depthlimitoptions) to control this behavior:
+
+```ts
+// Default (secure): skip only the depth increment, still traverse children
+const rule = depthLimit(5, { ignore: ["metadata"], ignoreMode: "exclude" });
+
+// Optional: skip the field and its entire subtree (use with caution)
+const rule = depthLimit(5, { ignore: ["metadata"], ignoreMode: "skip" });
+```
+
+With `"exclude"`, the ignored field does not increment the depth counter, but its children are still traversed and subject to depth limits. This prevents attackers from nesting arbitrarily deep queries under ignored composite fields.
+
+### Case-Insensitive Matching
+
+Enable [`caseInsensitiveIgnore`](#depthlimitoptions) to match string ignore rules regardless of casing:
+
+```ts
+const rule = depthLimit(5, {
+  caseInsensitiveIgnore: true,
+  ignore: ["metadata"], // Matches "metadata", "Metadata", "METADATA", etc.
+});
+```
+
+### Introspection Handling
+
+By default, only `__typename` is ignored during depth calculation. The `__schema` and `__type` fields are **counted** toward depth, protecting against deeply nested introspection queries.
+
+Note that scalar introspection fields like `__typename` never increment depth on their own (only composite fields with nested selections do). The `ignoreIntrospection` setting controls whether these fields are _recognized as ignored_, which matters for the `ignoreMode` behavior when they appear within composite selections.
+
+```ts
+// Default: only __typename is ignored
+const rule = depthLimit(10);
+
+// Ignore all introspection fields and skip their entire subtree
+const rule = depthLimit(10, { ignoreIntrospection: "all" });
+
+// Count all fields toward depth, including __typename
+const rule = depthLimit(10, { ignoreIntrospection: "none" });
+```
+
+> **Note:** When `ignoreIntrospection: "all"` is set, introspection fields and their entire subtree are always skipped — regardless of `ignoreMode`. This is a security hardening mode that completely eliminates introspection from depth calculation.
+
+### Depth Callback
+
+Monitor query depths with an optional [`callback`](#depthcallback) that receives per-operation depth results:
+
+```ts
+const rule = depthLimit(10, {}, (depths) => {
+  // { "GetUser": 3, "ListPosts": 5, "anonymous": 2 }
+  for (const [operation, depth] of Object.entries(depths)) {
+    console.log(`Operation "${operation}" has depth ${depth}`);
+  }
+});
+```
+
+If you do not need options, you can pass the callback as the second argument:
+
+```ts
+const rule = depthLimit(10, (depths) => {
+  console.log(depths);
+});
+```
+
+> **Note:** When a callback is provided, the engine traverses the full query to report accurate maximum depths. Without a callback, the engine **short-circuits** on the first violation for maximum performance.
 
 ## API Reference
 
@@ -336,161 +272,190 @@ const yoga = createYoga({
 
 Creates a GraphQL validation rule that limits query depth.
 
-- `maxDepth` (number, **required**) - Maximum allowed depth for queries
-- `options` (object, optional):
-  - `caseInsensitiveIgnore` (boolean, optional) - Enable case-insensitive matching for string-based ignore rules. Default: `false`
-  - `ignore` (IgnoreRule[], optional) - Fields to exclude from depth calculation
-    - String: Exact field name match (case-sensitive by default)
-    - RegExp: Pattern matching
-    - Function: `(fieldName: string) => boolean` - Custom logic
-  - `useDirective` (boolean, optional) - Enable reading depth limits from `@depth` directive on fields. Default: `false`
-- `callback` (DepthCallback, optional) - Called after validation with depth information
-  - Receives object mapping operation names to their depths
+#### Parameters
 
-**Returns:** `ValidationRule` - GraphQL validation rule function
+| Parameter | Type | Required | Description |
+|---|---|---|---|
+| `maxDepth` | `number` | Yes | Maximum allowed depth (non-negative integer) |
+| `options` | [`DepthLimitOptions`](#depthlimitoptions) | No | Configuration options |
+| `callback` | [`DepthCallback`](#depthcallback) | No | Called with per-operation depth results |
 
-### Ignore Rules
+#### Returns
 
-Control which fields are excluded from depth calculation:
+A GraphQL `ValidationRule` function.
 
-```typescript
-import { depthLimit } from 'graphql-query-depth-limit-esm';
+#### Throws
 
-const server = new ApolloServer({
-  schema,
-  validationRules: [
-    depthLimit(5, {
-      ignore: [
-        'friends',                              // String: exact match
-        /^metadata/,                            // RegExp: pattern match
-        (fieldName) => fieldName.includes('__'), // Function: custom logic
-      ],
-    }),
-  ],
-});
-```
+- `Error` if `maxDepth` is not a non-negative integer
+- `TypeError` if options, callback, or ignore rules are invalid
 
-## Security Considerations
+### `depthDirectiveTypeDefs`
 
-This library is designed to protect against denial-of-service (DoS) attacks via deeply nested queries. Recent updates have strengthened the implementation to handle edge cases correctly:
-
-### Correctly Handled Scenarios
-
-✅ **Fragments at Different Depths** - Fragments used multiple times at different nesting levels are calculated correctly. Each usage is evaluated independently to prevent depth limit bypass.
+GraphQL SDL string defining the `@depth` directive. Include this in your schema type definitions when using `{ useDirective: true }`.
 
 ```graphql
-fragment UserInfo on User {
-  posts { title }  # Adds 2 levels
-}
+directive @depth(max: Int!) on FIELD_DEFINITION
+```
 
-query {
-  user {
-    ...UserInfo          # Depth: 1 + 2 = 3
-    friends {
-      ...UserInfo        # Depth: 2 + 2 = 4 ✓ (calculated independently)
-    }
+### `DepthLimitOptions`
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `caseInsensitiveIgnore` | `boolean` | `false` | Case-insensitive matching for string ignore rules |
+| `directiveMode` | [`DirectiveMode`](#directivemode) | `"cap"` | Controls how `@depth` directives interact with the global `maxDepth` |
+| `ignore` | [`IgnoreRule \| IgnoreRule[]`](#ignorerule) | `undefined` | Fields to skip during depth calculation |
+| `ignoreMode` | [`IgnoreMode`](#ignoremode) | `"exclude"` | Controls whether ignored fields skip their entire subtree or only the depth increment |
+| `ignoreIntrospection` | [`IntrospectionMode`](#introspectionmode) | `"typename"` | Controls which introspection fields are ignored |
+| `useDirective` | `boolean` | `false` | Read `@depth(max: Int!)` directives from field definitions |
+
+### `DirectiveMode`
+
+```ts
+type DirectiveMode = "cap" | "override";
+```
+
+- `"cap"` — directives can only tighten the limit below the global `maxDepth` (secure default)
+- `"override"` — the first directive replaces the global limit for its subtree
+
+### `IgnoreMode`
+
+```ts
+type IgnoreMode = "exclude" | "skip";
+```
+
+- `"exclude"` — skip the depth increment but still traverse children (secure default)
+- `"skip"` — skip the field and its entire subtree
+
+### `IntrospectionMode`
+
+```ts
+type IntrospectionMode = "all" | "none" | "typename";
+```
+
+- `"all"` — ignore every `__`-prefixed field (`__typename`, `__schema`, `__type`, etc.)
+- `"typename"` — only ignore `__typename` (secure default)
+- `"none"` — count all introspection fields toward depth
+
+### `IgnoreRule`
+
+```ts
+type IgnoreRule = string | RegExp | ((fieldName: string) => boolean);
+```
+
+### `DepthCallback`
+
+```ts
+type DepthCallback = (depths: Record<string, number>) => void;
+```
+
+## Error Extensions
+
+When a query exceeds the depth limit, the reported `GraphQLError` includes structured extensions for programmatic access:
+
+```json
+{
+  "message": "'GetUser' has depth 8 which exceeds maximum operation depth of 5 (at user.friends.friends)",
+  "extensions": {
+    "code": "QUERY_TOO_DEEP",
+    "depth": 8,
+    "maxDepth": 5,
+    "path": ["user", "friends", "friends"],
+    "shortCircuit": false
   }
 }
 ```
 
-✅ **Circular Fragment Detection** - Circular fragment references are detected per-path to prevent infinite recursion while maintaining accurate depth calculation.
+| Field | Type | Description |
+|---|---|---|
+| `code` | `string` | Always `"QUERY_TOO_DEEP"` |
+| `depth` | `number` | The depth found (exact when `shortCircuit` is `false`, lower bound when `true`) |
+| `maxDepth` | `number` | The maximum allowed depth that was exceeded |
+| `path` | `string[]` | Field path from the operation root to the violation point (uses aliases when present) |
+| `shortCircuit` | `boolean` | Whether the engine short-circuited (no callback) — if `true`, `depth` is a lower bound ("at least N") |
 
-✅ **Introspection Fields** - All introspection fields (`__typename`, `__schema`, `__type`, etc.) are automatically excluded from depth calculation.
+## How Depth Is Calculated
 
-### Known Limitations
+- Depth increments for each **composite field** (objects, interfaces, unions)
+- **Scalar and enum fields** do not increment depth
+- **Fragment spreads** contribute the depth of their expanded selections
+- **Inline fragments** contribute the depth of their selections
+- **`__typename`** is ignored by default (configurable via [`ignoreIntrospection`](#introspectionmode))
+- **`__schema` and `__type`** are counted toward depth by default
+- **Circular fragment references** are detected per-path and stop recursion
 
-⚠️ **Variables in @depth Directive** - The `@depth` directive only supports integer literals. Variables are not supported because their values are not available during the validation phase.
-
-```graphql
-# ✅ Works
-type Query {
-  user: User @depth(max: 5)
-}
-
-# ❌ Not supported - will fall back to global depth limit
-type Query {
-  user: User @depth(max: $maxDepth)
-}
-```
-
-⚠️ **Case-Sensitive Field Names** - By default, field name matching is case-sensitive (as per GraphQL specification). Use the `caseInsensitiveIgnore` option if you need case-insensitive matching for ignore rules.
-
-```typescript
-// Case-sensitive (default)
-depthLimit(5, { ignore: ['friends'] })  // Only matches 'friends', not 'Friends'
-
-// Case-insensitive
-depthLimit(5, {
-  caseInsensitiveIgnore: true,
-  ignore: ['friends']  // Matches 'friends', 'Friends', 'FRIENDS', etc.
-})
-```
-
-### Security Best Practices
-
-1. **Always use depth limiting in production** - Even if you think your schema is safe
-2. **Combine with complexity limiting** - Use both for comprehensive protection
-3. **Set reasonable limits** - Balance security with legitimate use cases (typically 5-15)
-4. **Monitor query depths** - Use the callback to log and alert on suspicious patterns
-5. **Use field-specific limits** - Apply stricter limits to recursive fields via `@depth` directive
-
-## Why Depth Limiting?
-
-Deeply nested queries can cause:
-
-- **Performance issues** - Exponential data fetching (N+1 problem amplified)
-- **DoS attacks** - Server resource exhaustion
-- **Database overload** - Too many nested joins
-
-### Example Attack
+### Example
 
 ```graphql
-query Attack {
+# Depth: 0
+query {
+  # Depth: 1
   user {
-    friends {
-      friends {
-        friends {
-          friends {
-            # ... 100 levels deep
-            # This could fetch millions of records!
-          }
-        }
+    name        # Depth: 1 (scalar, no increment)
+    # Depth: 2
+    posts {
+      title     # Depth: 2 (scalar, no increment)
+      # Depth: 3
+      comments {
+        text    # Depth: 3 (scalar, no increment)
       }
     }
   }
 }
+# Maximum depth: 3
 ```
 
-Without depth limiting, this query could:
-- Fetch 10^100 user records (if each user has 10 friends)
-- Exhaust server memory
-- Crash your database
+## Migrating from v1 to v2
 
-**Depth limiting stops this attack during validation.**
+v2 introduces three **breaking changes** with more secure defaults:
 
-## Comparison with Complexity Limiting
+### 1. Introspection fields are no longer fully ignored
 
-| Feature | Depth Limit | Complexity Limit |
-| :--- | :--- | :--- |
-| **Measures** | Nesting level | Total operation cost |
-| **Prevents** | Deep recursion attacks | Wide/expensive queries |
-| **Example Attack** | `user { friends { friends { ... } } }` | `users(limit: 9999) { id name email ... }` |
-| **Use Case** | Recursive relationships | Pagination/list queries |
+**v1:** All `__`-prefixed fields (`__typename`, `__schema`, `__type`) were ignored during depth calculation.
 
-**Best Practice:** Use **both** depth and complexity limiting for comprehensive protection.
+**v2:** Only `__typename` is ignored by default. `__schema` and `__type` now count toward depth, preventing deeply nested introspection queries from bypassing the depth limit.
 
----
+**To restore v1 behavior:**
 
-## Requirements
+```ts
+depthLimit(10, { ignoreIntrospection: "all" });
+```
 
-- Node.js 18+
-- GraphQL 16+
+### 2. `@depth` directives can no longer relax the global limit
 
-## Related Packages
+**v1:** A `@depth(max: 50)` directive could override a global `maxDepth: 10`, allowing that subtree to nest up to 50 levels deep.
 
-- [graphql-query-complexity-esm](https://github.com/lafittemehdy/graphql-query-complexity-esm) - Query complexity limiting
-- [graphql-rate-limit-redis-esm](https://github.com/lafittemehdy/graphql-rate-limit-redis-esm) - Rate limiting with Redis
+**v2:** By default (`directiveMode: "cap"`), directives can only **tighten** below the global max. A `@depth(max: 50)` with `maxDepth: 10` caps at 10.
+
+**To restore v1 behavior:**
+
+```ts
+depthLimit(10, { directiveMode: "override", useDirective: true });
+```
+
+### 3. Short-circuit traversal on violations
+
+**v1:** The engine always traversed the full query, even after detecting a violation.
+
+**v2:** When no callback is provided, the engine stops traversal immediately on the first violation. This is a performance improvement and DoS protection — a deeply nested query with a small `maxDepth` no longer burns CPU traversing thousands of levels.
+
+**Impact:** This is transparent to most users. The only observable difference is that error messages may report the depth at the first violation rather than the deepest violation when multiple branches exceed the limit. If you need the true maximum depth, provide a callback.
+
+## Architecture Visualization
+
+Explore the library's internal function architecture with an interactive node-based visualization:
+
+GitHub file: [`examples/visualization/architecture.html`](examples/visualization/architecture.html)
+Live preview (GitHub Pages): https://lafittemehdy.github.io/graphql-query-depth-limit-esm/architecture.html
+
+```bash
+open examples/visualization/architecture.html
+```
+
+If the live preview URL is not active yet, enable **Settings > Pages > Build and deployment > GitHub Actions** in the repository.
+
+Each function is rendered as a node with typed input/output ports, connected by the call graph. Color-coded by module with glassmorphism styling. Zoom, pan, click nodes for detailed signatures, and filter by module.
 
 ## License
 
-MIT License. This code is free to use. It has no opinions. You, I presume, do. Please use them.
+[MIT](LICENSE)
+

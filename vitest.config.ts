@@ -1,17 +1,17 @@
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  resolve: {
-    dedupe: ["graphql"],
-  },
-  test: {
-    coverage: {
-      exclude: ["dist", "**/*.test.ts", "**/__tests__/**"],
-      provider: "v8",
-      reporter: ["text", "json", "html"],
-    },
-    environment: "node",
-    exclude: ["**/dist/**", "**/node_modules/**"],
-    globals: true,
-  },
+	test: {
+		coverage: {
+			exclude: ["dist/**", "examples/**", "tsup.config.ts", "vitest.config.ts"],
+			provider: "v8",
+			reporter: ["html", "json", "text"],
+			thresholds: {
+				branches: 85,
+				functions: 100,
+				lines: 93,
+				statements: 93,
+			},
+		},
+	},
 });

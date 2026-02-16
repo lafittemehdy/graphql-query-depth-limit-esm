@@ -1,67 +1,76 @@
 {
-  "name": "graphql-query-depth-limit-esm",
-  "version": "0.1.0",
-  "description": "GraphQL query depth limiting for ESM projects",
-  "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    }
-  },
-  "files": [
-    "dist",
-    "README.md",
-    "LICENSE"
-  ],
-  "scripts": {
-    "build": "tsc",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "dev": "tsc --watch",
-    "lint": "biome check --unsafe --write && tsc --noEmit",
-    "lint:fix": "biome check --write .",
-    "format": "biome format --write .",
-    "prepublishOnly": "pnpm run build && pnpm run test"
-  },
-  "keywords": [
-    "graphql",
-    "depth",
-    "limit",
-    "validation",
-    "security",
-    "esm"
-  ],
-  "author": "Lafitte Mehdy",
-  "license": "MIT",
-  "publishConfig": {
-    "access": "public",
-    "provenance": true
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/lafittemehdy/graphql-query-depth-limit-esm.git"
-  },
-  "bugs": {
-    "url": "https://github.com/lafittemehdy/graphql-query-depth-limit-esm/issues"
-  },
-  "homepage": "https://github.com/lafittemehdy/graphql-query-depth-limit-esm#readme",
-  "peerDependencies": {
-    "graphql": "^16.0.0"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.3.5",
-    "@types/node": "^24.10.1",
-    "@vitest/coverage-v8": "^4.0.9",
-    "graphql": "^16.12.0",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.9"
-  },
-  "sideEffects": false,
-  "engines": {
-    "node": ">=18.0.0"
-  }
+	"name": "graphql-query-depth-limit-esm",
+	"version": "2.0.0",
+	"description": "GraphQL query depth limiting validation rule with directive support, ignore rules, and fragment cycle detection",
+	"author": "Lafitte Mehdy",
+	"license": "MIT",
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs"
+		}
+	},
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"files": [
+		"dist",
+		"LICENSE",
+		"README.md"
+	],
+	"engines": {
+		"node": ">=20.0.0"
+	},
+	"keywords": [
+		"depth-limit",
+		"dos-protection",
+		"esm",
+		"graphql",
+		"security",
+		"validation"
+	],
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/lafittemehdy/graphql-query-depth-limit-esm.git"
+	},
+	"bugs": {
+		"url": "https://github.com/lafittemehdy/graphql-query-depth-limit-esm/issues"
+	},
+	"homepage": "https://github.com/lafittemehdy/graphql-query-depth-limit-esm#readme",
+	"sideEffects": false,
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"peerDependencies": {
+		"graphql": "^16.0.0"
+	},
+	"devDependencies": {
+		"@apollo/server": "^5.4.0",
+		"@biomejs/biome": "^2.3.5",
+		"@types/node": "^20.19.33",
+		"@vitest/coverage-v8": "^4.0.9",
+		"@vitest/ui": "^4.0.9",
+		"graphql": "^16.12.0",
+		"graphql-yoga": "^5.18.0",
+		"tsup": "^8.5.1",
+		"tsx": "^4.19.4",
+		"typescript": "^5.9.3",
+		"vitest": "^4.0.9"
+	},
+	"scripts": {
+		"build": "tsup",
+		"dev": "tsc --watch",
+		"example:apollo": "tsx examples/servers/apollo-server.ts",
+		"example:yoga": "tsx examples/servers/yoga-server.ts",
+		"lint": "biome check && tsc --noEmit",
+		"lint:fix": "biome check --write && tsc --noEmit",
+		"prepublishOnly": "pnpm run lint && pnpm run build && pnpm test",
+		"test": "vitest run",
+		"test:coverage": "vitest run --coverage",
+		"test:ui": "vitest --ui",
+		"test:watch": "vitest"
+	}
 }
