@@ -23,6 +23,11 @@
 			--radius: 12px;
 			--node-w: 300px;
 			--header-h: 56px;
+			--app-vh: 100vh;
+		}
+
+		@supports (height: 100dvh) {
+			:root { --app-vh: 100dvh; }
 		}
 
 		/* ================================================================
@@ -34,7 +39,8 @@
 			background-color: var(--bg);
 			color: var(--text);
 			font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-			height: 100vh;
+			height: var(--app-vh);
+			min-height: 100svh;
 			overflow: hidden;
 			width: 100vw;
 		}
@@ -61,19 +67,23 @@
 			background: var(--bg-header);
 			border-bottom: 1px solid var(--border);
 			display: flex;
+			gap: 10px;
 			height: var(--header-h);
+			isolation: isolate;
 			justify-content: space-between;
 			padding: 0 32px;
 			position: fixed;
 			top: 0;
 			width: 100%;
-			z-index: 100;
+			z-index: 140;
 		}
 
 		.header-left {
 			align-items: baseline;
 			display: flex;
+			flex: 1 1 auto;
 			gap: 16px;
+			min-width: 0;
 		}
 
 		.header-left h1 {
@@ -81,13 +91,19 @@
 			font-size: 13px;
 			font-weight: 600;
 			letter-spacing: 0.04em;
+			max-width: 100%;
+			overflow: hidden;
+			text-overflow: ellipsis;
 			text-transform: uppercase;
+			white-space: nowrap;
 		}
 
 		.header-center {
 			align-items: center;
 			display: flex;
 			gap: 8px;
+			position: relative;
+			z-index: 2;
 		}
 
 		.filter-chip {
@@ -102,7 +118,9 @@
 			font-size: 12px;
 			gap: 6px;
 			padding: 7px 14px 7px 12px;
+			position: relative;
 			transition: all 0.2s ease;
+			z-index: 1;
 		}
 
 		.filter-chip:hover {
@@ -111,8 +129,10 @@
 		}
 
 		.filter-chip.active {
+			background: color-mix(in srgb, var(--mod-color) 12%, var(--bg-elevated));
 			border-color: var(--mod-color);
 			color: var(--text);
+			z-index: 3;
 		}
 
 		.filter-chip.dimmed-chip {
@@ -139,7 +159,24 @@
 			opacity: 0.8;
 		}
 
-		.header-right { align-items: center; display: flex; gap: 8px; }
+		.header-right {
+			align-items: center;
+			display: flex;
+			flex: 0 0 auto;
+			gap: 8px;
+			margin-left: auto;
+			min-width: 0;
+			position: relative;
+			z-index: 3;
+		}
+
+		.header-search-wrap {
+			align-items: center;
+			display: flex;
+			min-width: 0;
+			position: relative;
+			width: min(42vw, 190px);
+		}
 
 		.header-search {
 			background: var(--bg-elevated);
@@ -150,15 +187,65 @@
 			font-size: 10px;
 			letter-spacing: 0.04em;
 			outline: none;
-			padding: 4px 10px;
+			padding: 4px 30px 4px 10px;
 			transition: border-color 0.15s ease;
-			width: 140px;
+			width: 170px;
 		}
 
 		.header-search::placeholder { color: var(--text-muted); }
 
 		.header-search:focus {
 			border-color: rgba(212, 162, 76, 0.4);
+		}
+
+		.header-search.has-match {
+			border-color: rgba(128, 184, 88, 0.5);
+		}
+
+		.header-search.no-match {
+			border-color: rgba(200, 104, 96, 0.6);
+		}
+
+		.header-search-clear {
+			align-items: center;
+			background: transparent;
+			border: none;
+			color: var(--text-muted);
+			cursor: pointer;
+			display: inline-flex;
+			font-size: 14px;
+			height: 20px;
+			justify-content: center;
+			opacity: 0;
+			padding: 0;
+			pointer-events: none;
+			position: absolute;
+			right: 6px;
+			transition: color 0.15s ease, opacity 0.15s ease;
+			width: 20px;
+		}
+
+		.header-search-wrap.has-value .header-search-clear {
+			opacity: 0.85;
+			pointer-events: auto;
+		}
+
+		.header-search-clear:hover { color: var(--text); }
+		.header-search-clear:disabled { pointer-events: none; }
+
+		.header-search-meta {
+			color: var(--text-muted);
+			font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+			font-size: 9px;
+			min-width: 54px;
+			opacity: 0;
+			text-align: right;
+			transition: opacity 0.15s ease;
+			white-space: nowrap;
+		}
+
+		.header-right.has-search-meta .header-search-meta {
+			opacity: 0.9;
 		}
 
 		.header-btn {
@@ -188,7 +275,7 @@
 			background-position: center center;
 			background-size: 200px 200px;
 			cursor: grab;
-			height: calc(100vh - var(--header-h));
+			height: calc(var(--app-vh) - var(--header-h));
 			overflow: hidden;
 			position: relative;
 			top: var(--header-h);
@@ -274,6 +361,14 @@
 		.node.search-dimmed {
 			opacity: 0.12;
 			transition: opacity 0.3s ease;
+		}
+
+		.node.search-match {
+			border-color: color-mix(in srgb, var(--mod-color) 58%, transparent);
+			box-shadow:
+				0 0 0 1px color-mix(in srgb, var(--mod-color) 28%, transparent),
+				0 0 24px color-mix(in srgb, var(--mod-color) 14%, transparent),
+				0 6px 24px rgba(0, 0, 0, 0.4);
 		}
 
 		.connection-group.search-dimmed .glow-line,
@@ -427,7 +522,8 @@
 		#detail-panel {
 			background: var(--bg-header);
 			border-left: 1px solid var(--border);
-			height: calc(100vh - var(--header-h));
+			height: calc(var(--app-vh) - var(--header-h));
+			isolation: isolate;
 			overflow-y: auto;
 			padding: 32px;
 			position: fixed;
@@ -436,7 +532,7 @@
 			transform: translateX(100%);
 			transition: transform 0.25s ease;
 			width: 360px;
-			z-index: 50;
+			z-index: 120;
 		}
 
 		#detail-panel.open { transform: translateX(0); }
@@ -620,12 +716,13 @@
 			display: flex;
 			flex-direction: column;
 			font-size: 12px;
+			isolation: isolate;
 			left: 0;
 			overflow: hidden;
 			position: fixed;
 			top: var(--header-h);
 			width: 360px;
-			z-index: 50;
+			z-index: 110;
 		}
 
 		.lab-section {
@@ -647,38 +744,43 @@
 
 		/* Preset header row */
 		.lab-header-row {
-			align-items: center;
+			align-items: stretch;
 			background: #0D0D0D;
 			display: flex;
-			flex-wrap: wrap;
-			gap: 8px;
+			flex-direction: column;
+			gap: 10px;
 		}
 
 		.lab-header-row .lab-section-title { margin-bottom: 0; }
 
 		/* Preset chips — matches filter-chip vocabulary */
 		.lab-segment-container {
-			display: flex;
-			flex: 1;
-			flex-wrap: wrap;
+			display: grid;
 			gap: 6px;
-			min-width: 0;
+			grid-template-columns: repeat(4, minmax(0, 1fr));
+			width: 100%;
 		}
 
 		.lab-segment-btn {
+			align-items: center;
 			background: transparent;
 			border: 1px solid var(--border);
 			border-radius: 16px;
 			color: var(--text-secondary);
 			cursor: pointer;
+			display: inline-flex;
 			font-family: inherit;
-			font-size: 12px;
+			font-size: 11px;
+			justify-content: center;
+			line-height: 1.2;
 			min-width: 0;
 			overflow: hidden;
-			padding: 5px 14px;
+			padding: 6px 8px;
+			text-align: center;
 			text-overflow: ellipsis;
 			transition: all 0.2s ease;
 			white-space: nowrap;
+			width: 100%;
 		}
 
 		.lab-segment-btn:hover {
@@ -1189,7 +1291,8 @@
 
 			.header-left h1 { font-size: 12px; }
 
-			.header-search { width: 100px; }
+			.header-search { width: 130px; }
+			.header-search-wrap { width: min(40vw, 150px); }
 		}
 
 		/* Mobile */
@@ -1201,13 +1304,23 @@
 			#header { padding: 0 16px; }
 
 			.header-center { display: none; }
+			.header-right { gap: 6px; }
+			.header-search-meta { display: none; }
+			.header-search-wrap {
+				flex: 1;
+				max-width: min(48vw, 210px);
+			}
+			.header-search { width: 100%; }
 
 			#detail-panel {
 				border-left: none;
 				border-top: 1px solid var(--border);
 				bottom: 0;
-				height: 50vh;
+				border-radius: 14px 14px 0 0;
+				box-shadow: 0 -24px 48px rgba(0, 0, 0, 0.55);
+				height: min(56svh, 500px);
 				left: 0;
+				max-height: calc(var(--app-vh) - var(--header-h));
 				padding: 24px;
 				right: 0;
 				top: auto;
@@ -1221,40 +1334,135 @@
 				border-right: none;
 				border-top: 1px solid var(--border);
 				bottom: 0;
-				height: 45vh;
+				border-radius: 14px 14px 0 0;
+				box-shadow: 0 -18px 34px rgba(0, 0, 0, 0.45);
+				height: min(54svh, 460px);
 				left: 0;
+				max-height: calc(var(--app-vh) - var(--header-h));
+				overflow-y: auto;
+				padding-bottom: env(safe-area-inset-bottom);
 				position: fixed;
 				top: auto;
 				width: 100%;
 			}
 
-			.lab-section { padding: 12px 16px; }
+			.lab-section { padding: 10px 14px; }
+			.lab-header-row { gap: 6px; }
+			.lab-header-row .lab-section-title { display: none; }
+			.lab-segment-container {
+				gap: 6px;
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+			}
+			.lab-segment-btn {
+				font-size: 10px;
+				padding: 6px 6px;
+			}
 
-			.lab-editor { min-height: 72px; }
+			.lab-editor { min-height: 64px; }
 
-			.lab-control-deck { height: auto; flex-wrap: wrap; padding: 8px; }
-
-			.deck-module.gauge { min-width: 100%; }
+			.lab-control-deck {
+				display: grid;
+				gap: 8px;
+				grid-template-areas:
+					"params gauge"
+					"actions actions";
+				grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+				height: auto;
+				padding: 8px 10px 10px;
+			}
+			.deck-module {
+				background: #0C0C0C;
+				border: 1px solid #1E1E1E;
+				border-radius: 8px;
+				min-width: 0;
+				padding: 6px 8px;
+			}
+			.deck-module::after { display: none; }
+			.deck-module.params { grid-area: params; }
+			.deck-module.gauge {
+				grid-area: gauge;
+				min-width: 0;
+			}
+			.deck-module.actions {
+				align-items: stretch;
+				display: grid;
+				gap: 6px;
+				grid-area: actions;
+				grid-template-columns: repeat(2, minmax(0, 1fr));
+				padding: 6px;
+			}
+			.deck-module.actions .deck-btn {
+				min-height: 30px;
+				padding: 6px 6px;
+				width: 100%;
+			}
+			.deck-label {
+				font-size: 6px;
+				margin-bottom: 4px;
+			}
+			.deck-stepper {
+				min-height: 30px;
+				width: 100%;
+			}
+			.stepper-btn {
+				height: 28px;
+				width: 22px;
+			}
+			.stepper-input {
+				flex: 1;
+				min-width: 34px;
+				font-size: 11px;
+				width: auto;
+			}
+			.pressure-meter { gap: 8px; }
+			.pressure-track { height: 5px; }
+			.pressure-val { font-size: 11px; min-width: 48px; }
 
 			.console-output { max-height: none; }
-
-			.header-search { width: 100px; }
 
 			.lab-resize-handle { display: none; }
 		}
 
 		/* Small mobile */
 		@media (max-width: 480px) {
-			.lab-segment-btn { font-size: 10px; padding: 4px 10px; }
+			.lab-segment-btn { font-size: 9px; padding: 5px 4px; }
 
 			#header { padding: 0 12px; }
 
-			.header-left h1 { font-size: 11px; }
+			.header-left h1 { font-size: 10px; }
+			.header-right { gap: 4px; }
+			.header-search-wrap { max-width: min(44vw, 150px); }
+			.header-search {
+				font-size: 9px;
+				padding-left: 8px;
+				padding-right: 24px;
+			}
+			.header-search-clear {
+				font-size: 12px;
+				height: 18px;
+				right: 4px;
+				width: 18px;
+			}
 
 			.header-btn {
 				font-size: 9px;
+				max-width: 62px;
+				overflow: hidden;
 				padding: 4px 8px;
+				text-overflow: ellipsis;
+				white-space: nowrap;
 			}
+
+			.lab-control-deck {
+				grid-template-areas:
+					"params gauge"
+					"actions actions";
+				grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+				gap: 6px;
+				padding: 8px;
+			}
+			.deck-module.actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+			.deck-btn { font-size: 9px; }
 
 			#detail-panel { padding: 16px; }
 
@@ -1322,7 +1530,11 @@
 		</div>
 		<div class="header-center" id="module-filters"></div>
 		<div class="header-right">
-			<input type="text" class="header-search" id="node-search" placeholder="Search nodes..." aria-label="Search nodes by name">
+			<div class="header-search-wrap">
+				<input type="text" class="header-search" id="node-search" placeholder="Search nodes..." aria-label="Search nodes by name" autocomplete="off" spellcheck="false">
+				<button type="button" class="header-search-clear" id="node-search-clear" aria-label="Clear search" title="Clear search">&times;</button>
+			</div>
+			<span class="header-search-meta" id="node-search-meta" aria-live="polite"></span>
 			<button type="button" class="header-btn" id="fit-btn" title="Fit all nodes (F)" aria-label="Fit all nodes to viewport">Fit All</button>
 		</div>
 	</header>
@@ -2049,6 +2261,41 @@
 	let dragStartX = 0;
 	let dragStartY = 0;
 	let userHasPanned = false;
+	let autoFitRaf = null;
+
+	function isTextInputElement(el) {
+		if (!el) return false;
+		return el.tagName === "INPUT" || el.tagName === "TEXTAREA";
+	}
+
+	function isMobileViewport() {
+		return window.matchMedia("(max-width: 768px)").matches;
+	}
+
+	function syncAppViewportHeight() {
+		const nextHeight = Math.round(window.visualViewport?.height ?? window.innerHeight);
+		document.documentElement.style.setProperty("--app-vh", `${nextHeight}px`);
+	}
+
+	function scheduleAutoFit() {
+		if (userHasPanned) return;
+
+		// On mobile, avoid refits while typing to prevent keyboard-induced jumps.
+		if (isMobileViewport() && isTextInputElement(document.activeElement)) {
+			return;
+		}
+
+		if (autoFitRaf !== null) {
+			cancelAnimationFrame(autoFitRaf);
+		}
+
+		autoFitRaf = requestAnimationFrame(() => {
+			autoFitRaf = null;
+			if (!userHasPanned) {
+				fitAll(false);
+			}
+		});
+	}
 
 	function updateTransform(animated) {
 		const vp = document.getElementById("viewport");
@@ -2064,16 +2311,132 @@
 
 	function setupZoomPan() {
 		const canvas = document.getElementById("canvas");
+		const activePointers = new Map();
+		let pinchStartDistance = null;
+		let pinchStartScale = scale;
+		let pinchStartPanX = panX;
+		let pinchStartPanY = panY;
+		let pinchAnchor = null;
+		let dragPointerType = "mouse";
+		let lastPanSampleTs = 0;
+		let lastPanSampleX = 0;
+		let lastPanSampleY = 0;
+		let panVelocityX = 0;
+		let panVelocityY = 0;
+		let inertiaRaf = null;
+
+		function isCanvasDragTarget(target) {
+			return target === canvas || target.id === "viewport" || target.tagName === "svg";
+		}
+
+		function clampScale(next) {
+			return Math.max(0.1, Math.min(3, next));
+		}
+
+		function stopInertia() {
+			if (inertiaRaf !== null) {
+				cancelAnimationFrame(inertiaRaf);
+				inertiaRaf = null;
+			}
+		}
+
+		function resetPanVelocity(point) {
+			panVelocityX = 0;
+			panVelocityY = 0;
+			lastPanSampleTs = performance.now();
+			lastPanSampleX = point.x;
+			lastPanSampleY = point.y;
+		}
+
+		function trackPanVelocity(point) {
+			const now = performance.now();
+			const dt = now - lastPanSampleTs;
+
+			if (dt > 0) {
+				const instantVX = (point.x - lastPanSampleX) / dt;
+				const instantVY = (point.y - lastPanSampleY) / dt;
+				const alpha = 0.35;
+				panVelocityX = panVelocityX * (1 - alpha) + instantVX * alpha;
+				panVelocityY = panVelocityY * (1 - alpha) + instantVY * alpha;
+			}
+
+			lastPanSampleTs = now;
+			lastPanSampleX = point.x;
+			lastPanSampleY = point.y;
+		}
+
+		function startInertia() {
+			if (Math.hypot(panVelocityX, panVelocityY) < 0.02) {
+				return;
+			}
+
+			stopInertia();
+
+			let vx = panVelocityX;
+			let vy = panVelocityY;
+			let lastTs = performance.now();
+
+			const step = (ts) => {
+				const dt = Math.min(48, ts - lastTs);
+				lastTs = ts;
+
+				// Exponential decay gives smooth momentum regardless of frame rate.
+				const decay = Math.exp(-0.01 * dt);
+				vx *= decay;
+				vy *= decay;
+
+				panX += vx * dt;
+				panY += vy * dt;
+				userHasPanned = true;
+				updateTransform(false);
+
+				if (Math.hypot(vx, vy) < 0.008) {
+					inertiaRaf = null;
+					return;
+				}
+
+				inertiaRaf = requestAnimationFrame(step);
+			};
+
+			inertiaRaf = requestAnimationFrame(step);
+		}
+
+		function pointerCenter(points) {
+			const [a, b] = points;
+			return {
+				x: (a.x + b.x) / 2,
+				y: (a.y + b.y) / 2,
+			};
+		}
+
+		function pointerDistance(points) {
+			const [a, b] = points;
+			return Math.hypot(a.x - b.x, a.y - b.y);
+		}
+
+		function startSinglePointerDrag(point, pointerType = "mouse") {
+			isDragging = true;
+			dragPointerType = pointerType;
+			dragStartX = point.x - panX;
+			dragStartY = point.y - panY;
+			resetPanVelocity(point);
+		}
+
+		function clearPinchState() {
+			pinchStartDistance = null;
+			pinchAnchor = null;
+		}
 
 		canvas.addEventListener("wheel", (e) => {
 			e.preventDefault();
+			stopInertia();
 			const rect = canvas.getBoundingClientRect();
 			const mx = e.clientX - rect.left;
 			const my = e.clientY - rect.top;
 
 			const oldScale = scale;
 			const factor = e.deltaY < 0 ? 1.08 : 1 / 1.08;
-			scale = Math.max(0.1, Math.min(3, scale * factor));
+			scale = clampScale(scale * factor);
 
 			const ratio = scale / oldScale;
 			panX = mx - (mx - panX) * ratio;
@@ -2083,24 +2446,118 @@
 		}, { passive: false });
 
 		canvas.addEventListener("pointerdown", (e) => {
-			if (e.target === canvas || e.target.id === "viewport" || e.target.tagName === "svg") {
-				isDragging = true;
-				dragStartX = e.clientX - panX;
-				dragStartY = e.clientY - panY;
-				canvas.setPointerCapture(e.pointerId);
+			if (!isCanvasDragTarget(e.target)) return;
+
+			stopInertia();
+			canvas.setPointerCapture(e.pointerId);
+			activePointers.set(e.pointerId, { type: e.pointerType, x: e.clientX, y: e.clientY });
+
+			if (activePointers.size === 1) {
+				startSinglePointerDrag({ x: e.clientX, y: e.clientY }, e.pointerType);
+				clearPinchState();
+			} else if (activePointers.size === 2) {
+				isDragging = false;
+				panVelocityX = 0;
+				panVelocityY = 0;
+				const points = Array.from(activePointers.values());
+				pinchStartDistance = pointerDistance(points);
+				pinchStartScale = scale;
+				pinchStartPanX = panX;
+				pinchStartPanY = panY;
+				pinchAnchor = pointerCenter(points);
 			}
 		});
 
 		canvas.addEventListener("pointermove", (e) => {
+			if (!activePointers.has(e.pointerId)) return;
+
+			const pointer = activePointers.get(e.pointerId);
+			activePointers.set(e.pointerId, {
+				type: pointer?.type ?? e.pointerType,
+				x: e.clientX,
+				y: e.clientY,
+			});
+
+			if (activePointers.size >= 2) {
+				const points = Array.from(activePointers.values());
+				const distance = pointerDistance(points);
+				const center = pointerCenter(points);
+
+				if (!pinchStartDistance || pinchStartDistance < 6 || !pinchAnchor) {
+					pinchStartDistance = Math.max(distance, 6);
+					pinchStartScale = scale;
+					pinchStartPanX = panX;
+					pinchStartPanY = panY;
+					pinchAnchor = center;
+					return;
+				}
+
+				const rect = canvas.getBoundingClientRect();
+				const rawRatio = distance / pinchStartDistance;
+				const scaleRatio = rawRatio ** 0.9;
+				const nextScale = clampScale(pinchStartScale * scaleRatio);
+				const ratio = nextScale / pinchStartScale;
+				const anchorX = pinchAnchor.x - rect.left;
+				const anchorY = pinchAnchor.y - rect.top;
+
+				let nextPanX = anchorX - (anchorX - pinchStartPanX) * ratio;
+				let nextPanY = anchorY - (anchorY - pinchStartPanY) * ratio;
+
+				nextPanX += (center.x - pinchAnchor.x) * 0.8;
+				nextPanY += (center.y - pinchAnchor.y) * 0.8;
+
+				scale = nextScale;
+				panX = nextPanX;
+				panY = nextPanY;
+				userHasPanned = true;
+				updateTransform(false);
+				return;
+			}
+
 			if (!isDragging) return;
 			panX = e.clientX - dragStartX;
 			panY = e.clientY - dragStartY;
+			trackPanVelocity({ x: e.clientX, y: e.clientY });
 			userHasPanned = true;
 			updateTransform(false);
 		});
 
-		canvas.addEventListener("pointerup", () => { isDragging = false; });
-		canvas.addEventListener("pointercancel", () => { isDragging = false; });
+		function releasePointer(pointerId) {
+			if (!activePointers.has(pointerId)) return;
+			activePointers.delete(pointerId);
+
+			try {
+				canvas.releasePointerCapture(pointerId);
+			} catch {
+				/* Pointer may already be released by the browser. */
+			}
+
+			if (activePointers.size === 1) {
+				const point = Array.from(activePointers.values())[0];
+				startSinglePointerDrag(point, point.type ?? "mouse");
+			} else {
+				isDragging = false;
+				if (activePointers.size === 0 && dragPointerType === "touch") {
+					startInertia();
+				}
+			}
+
+			if (activePointers.size < 2) {
+				clearPinchState();
+			}
+		}
+
+		canvas.addEventListener("pointerup", (e) => {
+			releasePointer(e.pointerId);
+		});
+		canvas.addEventListener("pointercancel", (e) => {
+			releasePointer(e.pointerId);
+		});
+		canvas.addEventListener("pointerleave", (e) => {
+			if (e.pointerType !== "touch") {
+				releasePointer(e.pointerId);
+			}
+		});
 	}
 
 	/* =================================================================
@@ -3320,9 +3777,35 @@
 		const lab = document.getElementById("query-lab");
 		if (!handle || !lab) return;
 
+		const MIN_WIDTH = 320;
+		const MAX_WIDTH = 500;
+		const mobileQuery = window.matchMedia("(max-width: 768px)");
 		let isResizing = false;
 
+		function clampWidth(px) {
+			return Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, px));
+		}
+
+		function getSavedWidth() {
+			const saved = localStorage.getItem("arch-lab-width");
+			if (!saved) return null;
+			const parsed = Number.parseInt(saved, 10);
+			if (Number.isNaN(parsed)) return null;
+			return clampWidth(parsed);
+		}
+
+		function applyWidthForViewport() {
+			if (mobileQuery.matches) {
+				lab.style.removeProperty("width");
+				return;
+			}
+
+			const savedWidth = getSavedWidth();
+			lab.style.width = `${savedWidth ?? 360}px`;
+		}
+
 		handle.addEventListener("pointerdown", (e) => {
+			if (mobileQuery.matches) return;
 			e.preventDefault();
 			isResizing = true;
 			handle.classList.add("active");
@@ -3331,25 +3814,51 @@
 
 		handle.addEventListener("pointermove", (e) => {
 			if (!isResizing) return;
-			const newWidth = Math.min(500, Math.max(280, e.clientX));
+			const newWidth = clampWidth(e.clientX);
 			lab.style.width = `${newWidth}px`;
 		});
 
-		handle.addEventListener("pointerup", (e) => {
+		function stopResize(pointerId) {
 			if (!isResizing) return;
 			isResizing = false;
 			handle.classList.remove("active");
-			handle.releasePointerCapture(e.pointerId);
-			localStorage.setItem("arch-lab-width", lab.style.width);
+			try {
+				handle.releasePointerCapture(pointerId);
+			} catch {
+				/* Pointer may already be released on viewport changes. */
+			}
 
-			if (!userHasPanned) fitAll(false);
+			if (!mobileQuery.matches) {
+				localStorage.setItem("arch-lab-width", lab.style.width);
+			}
+			scheduleAutoFit();
+		}
+
+		handle.addEventListener("pointerup", (e) => {
+			stopResize(e.pointerId);
 		});
 
-		/* Restore saved width */
-		const savedWidth = localStorage.getItem("arch-lab-width");
-		if (savedWidth) {
-			lab.style.width = savedWidth;
+		handle.addEventListener("pointercancel", (e) => {
+			stopResize(e.pointerId);
+		});
+
+		const onViewportChange = () => {
+			if (isResizing) {
+				isResizing = false;
+				handle.classList.remove("active");
+			}
+			applyWidthForViewport();
+			scheduleAutoFit();
+		};
+
+		if (typeof mobileQuery.addEventListener === "function") {
+			mobileQuery.addEventListener("change", onViewportChange);
+		} else {
+			mobileQuery.addListener(onViewportChange);
 		}
+
+		window.addEventListener("resize", onViewportChange);
+		applyWidthForViewport();
 	}
 
 	/* =================================================================
@@ -3357,68 +3866,184 @@
 	   ================================================================= */
 	function setupSearch() {
 		const input = document.getElementById("node-search");
+		const clearBtn = document.getElementById("node-search-clear");
+		const meta = document.getElementById("node-search-meta");
+		const right = document.querySelector(".header-right");
+		if (!input) return;
+
 		let debounceTimer = null;
+		let lastTerm = "";
+		let enterMatchIndex = -1;
 
-		function applySearch(query) {
-			const term = query.trim().toLowerCase();
-
-			if (!term) {
-				/* Clear search dimming */
-				document.querySelectorAll(".node").forEach(n => {
-					n.classList.remove("search-dimmed");
-				});
-				document.querySelectorAll(".connection-group").forEach(c => {
-					c.classList.remove("search-dimmed");
-				});
-				return;
+		function setSearchChrome(hasValue) {
+			const wrap = input.closest(".header-search-wrap");
+			if (wrap) {
+				wrap.classList.toggle("has-value", hasValue);
 			}
+			if (clearBtn) {
+				clearBtn.disabled = !hasValue;
+				clearBtn.tabIndex = hasValue ? 0 : -1;
+				clearBtn.setAttribute("aria-hidden", hasValue ? "false" : "true");
+			}
+		}
 
-			const matchIds = new Set();
+		function setSearchMeta(message = "") {
+			if (meta) {
+				meta.textContent = message;
+			}
+			if (right) {
+				right.classList.toggle("has-search-meta", message.length > 0);
+			}
+		}
+
+		function clearSearchVisuals() {
+			document.querySelectorAll(".node").forEach((n) => {
+				n.classList.remove("search-dimmed", "search-match");
+			});
+			document.querySelectorAll(".connection-group").forEach((c) => {
+				c.classList.remove("search-dimmed");
+			});
+			input.classList.remove("has-match", "no-match");
+			input.setAttribute("aria-invalid", "false");
+			setSearchMeta("");
+		}
+
+		function getMatches(term) {
+			const lower = term.toLowerCase();
+			const matches = [];
+
 			for (const node of NODES) {
-				if (node.id.toLowerCase().includes(term)) {
-					matchIds.add(node.id);
+				const moduleName = MODULES[node.module]?.name ?? "";
+				const haystack = `${node.id} ${moduleName} ${node.description ?? ""}`.toLowerCase();
+				if (haystack.includes(lower)) {
+					matches.push(node);
 				}
 			}
 
-			/* Dim non-matching nodes */
-			document.querySelectorAll(".node").forEach(n => {
-				n.classList.toggle("search-dimmed", !matchIds.has(n.dataset.id));
+			return matches;
+		}
+
+		function applySearch(query) {
+			const term = query.trim().toLowerCase();
+			setSearchChrome(term.length > 0);
+
+			if (!term) {
+				clearSearchVisuals();
+				lastTerm = "";
+				enterMatchIndex = -1;
+				return [];
+			}
+
+			const matches = getMatches(term);
+			const matchIds = new Set(matches.map((n) => n.id));
+			const hasMatches = matches.length > 0;
+
+			input.classList.toggle("has-match", hasMatches);
+			input.classList.toggle("no-match", !hasMatches);
+			input.setAttribute("aria-invalid", hasMatches ? "false" : "true");
+			setSearchMeta(hasMatches ? `${matches.length} match${matches.length === 1 ? "" : "es"}` : "No matches");
+
+			document.querySelectorAll(".node").forEach((n) => {
+				const isMatch = matchIds.has(n.dataset.id);
+				n.classList.toggle("search-dimmed", !isMatch);
+				n.classList.toggle("search-match", isMatch);
 			});
 
-			/* Dim unrelated connections */
-			document.querySelectorAll(".connection-group").forEach(g => {
-				g.classList.toggle("search-dimmed", !matchIds.has(g.dataset.from) && !matchIds.has(g.dataset.to));
+			document.querySelectorAll(".connection-group").forEach((g) => {
+				const isRelated = matchIds.has(g.dataset.from) || matchIds.has(g.dataset.to);
+				g.classList.toggle("search-dimmed", !isRelated);
 			});
+
+			if (term !== lastTerm) {
+				enterMatchIndex = -1;
+				lastTerm = term;
+			}
+
+			return matches;
+		}
+
+		function clearSearch({ blur = false, focus = false } = {}) {
+			clearTimeout(debounceTimer);
+			input.value = "";
+			applySearch("");
+			if (focus) input.focus();
+			if (blur) input.blur();
 		}
 
 		input.addEventListener("input", () => {
 			clearTimeout(debounceTimer);
-			debounceTimer = setTimeout(() => applySearch(input.value), 150);
+			debounceTimer = setTimeout(() => applySearch(input.value), 120);
+		});
+
+		input.addEventListener("focus", () => {
+			setSearchChrome(input.value.trim().length > 0);
+		});
+
+		input.addEventListener("blur", () => {
+			// Let mobile keyboards settle before optional viewport refit.
+			if (isMobileViewport()) {
+				setTimeout(() => scheduleAutoFit(), 120);
+			}
 		});
 
 		input.addEventListener("keydown", (e) => {
 			if (e.key === "Enter") {
-				/* Select first match */
 				const term = input.value.trim().toLowerCase();
-				if (term) {
-					const match = NODES.find(n => n.id.toLowerCase().includes(term));
-					if (match) {
-						selectNode(match.id);
-						input.blur();
-					}
+				if (!term) return;
+
+				e.preventDefault();
+				const matches = applySearch(term);
+				if (matches.length > 0) {
+					enterMatchIndex = (enterMatchIndex + 1) % matches.length;
+					selectNode(matches[enterMatchIndex].id);
 				}
 			} else if (e.key === "Escape") {
-				input.value = "";
-				applySearch("");
-				input.blur();
+				e.preventDefault();
+				clearSearch({ blur: true });
 			}
 		});
+
+		if (clearBtn) {
+			clearBtn.addEventListener("click", () => {
+				clearSearch({ focus: true });
+			});
+		}
+
+		document.addEventListener("keydown", (e) => {
+			const target = e.target;
+			const isEditing = isTextInputElement(target);
+			if (isEditing) return;
+
+			if (e.key === "/" && !e.altKey && !e.ctrlKey && !e.metaKey) {
+				e.preventDefault();
+				input.focus();
+				input.select();
+			} else if ((e.key === "k" || e.key === "K") && (e.ctrlKey || e.metaKey)) {
+				e.preventDefault();
+				input.focus();
+				input.select();
+			}
+		});
+
+		setSearchChrome(false);
+		setSearchMeta("");
 	}
 
 	/* =================================================================
 	   Initialization
 	   ================================================================= */
 	function init() {
+		syncAppViewportHeight();
+
+		window.addEventListener("resize", syncAppViewportHeight, { passive: true });
+		window.addEventListener("orientationchange", () => {
+			setTimeout(syncAppViewportHeight, 120);
+		});
+		if (window.visualViewport) {
+			window.visualViewport.addEventListener("resize", syncAppViewportHeight);
+			window.visualViewport.addEventListener("scroll", syncAppViewportHeight);
+		}
+
 		computeLayout();
 		renderConnections();
 		renderNodes();
@@ -3438,7 +4063,7 @@
 
 		/* Refit when canvas size changes (unless user has manually panned/zoomed) */
 		new ResizeObserver(() => {
-			if (!userHasPanned) fitAll(false);
+			scheduleAutoFit();
 		}).observe(document.getElementById("canvas"));
 
 		/* Initial fit */
