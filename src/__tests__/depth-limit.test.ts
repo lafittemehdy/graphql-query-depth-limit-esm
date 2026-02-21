@@ -289,6 +289,17 @@ describe("depthLimit", () => {
 			expect(callback).toHaveBeenCalledWith({ anonymous: 1 });
 		});
 
+		it("passes a plain object to callback for compatibility", () => {
+			const callback = vi.fn((depths: Record<string, number>) => {
+				expect(Object.getPrototypeOf(depths)).toBe(Object.prototype);
+				expect("hasOwnProperty" in depths).toBe(true);
+				expect(Object.hasOwn(depths, "anonymous")).toBe(true);
+			});
+			const query = parse("{ user { name } }");
+			validate(schema, query, [depthLimit(10, callback)]);
+			expect(callback).toHaveBeenCalledOnce();
+		});
+
 		it("invokes callback with per-operation depths", () => {
 			const callback = vi.fn();
 			const query = parse(`
@@ -533,6 +544,18 @@ describe("depthLimit", () => {
 			expect(errors).toHaveLength(1);
 			expect(errors[0]?.extensions?.shortCircuit).toBe(true);
 			expect(errors[0]?.message).toContain("at least");
+		});
+
+		it("shortCircuit: true reports the first violating path in query order", () => {
+			const query = parse(`{
+				user {
+					first: friends { friends { friends { name } } }
+					second: friends { friends { friends { name } } }
+				}
+			}`);
+			const errors = validate(schema, query, [depthLimit(3, { shortCircuit: true })]);
+			expect(errors).toHaveLength(1);
+			expect(errors[0]?.extensions?.path).toEqual(["user", "first", "friends", "friends"]);
 		});
 
 		it("shortCircuit: false without callback traverses full tree", () => {
@@ -1637,8 +1660,8 @@ describe("depthLimit", () => {
 		it("avoids collision when a named operation is called 'anonymous'", () => {
 			const callback = vi.fn();
 			const query = parse(`
-				query anonymous { user { name } }
-				{ user { friends { name } } }
+					query anonymous { user { name } }
+					{ user { friends { name } } }
 			`);
 			const { context } = createMockContext(query, schema);
 
@@ -1656,6 +1679,26 @@ describe("depthLimit", () => {
 			if (unnamedKey) {
 				expect(depths[unnamedKey]).toBe(2);
 			}
+		});
+
+		it("assigns unique callback keys for duplicate named operations", () => {
+			const callback = vi.fn();
+			const query = parse(`
+					query Same { user { name } }
+					query Same { user { friends { name } } }
+					query Same_1 { user { friends { friends { name } } } }
+				`);
+			const { context } = createMockContext(query, schema);
+
+			const rule = depthLimit(10, undefined, callback);
+			rule(context);
+
+			expect(callback).toHaveBeenCalledOnce();
+			const depths = callback.mock.calls[0]?.[0] as Record<string, number>;
+			expect(depths).toHaveProperty("Same", 1);
+			expect(depths).toHaveProperty("Same_2", 2);
+			expect(depths).toHaveProperty("Same_1", 3);
+			expect(Object.keys(depths)).toHaveLength(3);
 		});
 	});
 
@@ -1687,6 +1730,26 @@ describe("depthLimit", () => {
 			// Operation B should still be processed and appear in callback
 			expect(callback).toHaveBeenCalledOnce();
 			expect(callback).toHaveBeenCalledWith({ B: 2 });
+		});
+	});
+
+	describe("unexpected engine errors", () => {
+		it("rethrows non-IgnoreRuleError exceptions", () => {
+			const malformedDocument = {
+				definitions: [
+					{
+						kind: "OperationDefinition",
+						operation: "query",
+						selectionSet: {
+							selections: [{ kind: "BROKEN_KIND" }],
+						},
+					},
+				],
+			};
+			const { context } = createMockContext(malformedDocument as never, schema);
+
+			const rule = depthLimit(10);
+			expect(() => rule(context)).toThrow("Unhandled selection kind: BROKEN_KIND");
 		});
 	});
 

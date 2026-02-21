@@ -7,6 +7,7 @@
 [![npm downloads](https://img.shields.io/npm/dm/graphql-query-depth-limit-esm?logo=npm)](https://www.npmjs.com/package/graphql-query-depth-limit-esm)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Provenance](https://img.shields.io/badge/provenance-verified-brightgreen?logo=npm)](https://www.npmjs.com/package/graphql-query-depth-limit-esm)
 
 Production-ready GraphQL query depth limiting as a validation rule. Prevents denial-of-service attacks from deeply nested queries by enforcing a configurable maximum depth.
 
@@ -42,11 +43,16 @@ yarn add graphql-query-depth-limit-esm graphql
 ## Quick Start
 
 ```ts
-import { validate } from "graphql";
+import { specifiedRules, validate } from "graphql";
 import { depthLimit } from "graphql-query-depth-limit-esm";
 
-const errors = validate(schema, document, [depthLimit(7, { useDirective: true })]);
+const errors = validate(schema, document, [
+  ...specifiedRules,
+  depthLimit(7, { useDirective: true }),
+]);
 ```
+
+When calling `validate()` directly, include `specifiedRules` unless you intentionally want to replace GraphQL's default validation rules.
 
 The recommended way to use `graphql-query-depth-limit-esm` is the `@depth` directive — a global maximum protects your API, while per-field overrides can tighten limits (and can opt into deeper nesting when `directiveMode: "override"` is enabled).
 
@@ -85,7 +91,7 @@ Build the schema with the directive type defs, then enable directive support via
 ```ts
 import { makeExecutableSchema } from "@graphql-tools/schema";
 import { depthDirectiveTypeDefs, depthLimit } from "graphql-query-depth-limit-esm";
-import { validate } from "graphql";
+import { specifiedRules, validate } from "graphql";
 
 const schema = makeExecutableSchema({
   typeDefs: [depthDirectiveTypeDefs, yourTypeDefs],
@@ -94,6 +100,7 @@ const schema = makeExecutableSchema({
 
 // Global max of 7 — @depth directives can tighten but never exceed this limit
 const errors = validate(schema, document, [
+  ...specifiedRules,
   depthLimit(7, { useDirective: true }),
 ]);
 ```
@@ -152,11 +159,11 @@ For straightforward global limiting without per-field overrides, call [`depthLim
 
 ```ts
 import { depthLimit } from "graphql-query-depth-limit-esm";
-import { validate } from "graphql";
+import { specifiedRules, validate } from "graphql";
 
 // Reject queries deeper than 10 levels
 const rule = depthLimit(10);
-const errors = validate(schema, document, [rule]);
+const errors = validate(schema, document, [...specifiedRules, rule]);
 ```
 
 ### With Apollo Server

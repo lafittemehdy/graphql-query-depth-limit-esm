@@ -186,6 +186,8 @@ function calculateDepth(
 			continue;
 		}
 
+		const nextFrames: StackFrame[] = [];
+
 		for (const selection of frame.node.selectionSet.selections) {
 			switch (selection.kind) {
 				case Kind.FIELD: {
@@ -308,8 +310,9 @@ function calculateDepth(
 						}
 					}
 
-					// Push children onto stack
-					stack.push({
+					// Queue children and push in reverse after this selection set
+					// so DFS traversal follows query order deterministically.
+					nextFrames.push({
 						currentDepth: newDepth,
 						hasDirectiveLimit,
 						ignoredFieldsOnPath,
@@ -344,7 +347,7 @@ function calculateDepth(
 						? resolveTypeCondition(fragment.typeCondition.name.value, schema, frame.parentType)
 						: frame.parentType;
 
-					stack.push({
+					nextFrames.push({
 						currentDepth: frame.currentDepth,
 						hasDirectiveLimit: frame.hasDirectiveLimit,
 						ignoredFieldsOnPath: frame.ignoredFieldsOnPath,
@@ -362,7 +365,7 @@ function calculateDepth(
 						? resolveTypeCondition(selection.typeCondition.name.value, schema, frame.parentType)
 						: frame.parentType;
 
-					stack.push({
+					nextFrames.push({
 						currentDepth: frame.currentDepth,
 						hasDirectiveLimit: frame.hasDirectiveLimit,
 						ignoredFieldsOnPath: frame.ignoredFieldsOnPath,
@@ -377,13 +380,28 @@ function calculateDepth(
 
 				default: {
 					const exhaustiveCheck: never = selection;
-					throw new Error(`Unhandled selection kind: ${(exhaustiveCheck as SelectionNode).kind}`);
+					throwUnhandledSelectionKind(exhaustiveCheck);
 				}
+			}
+		}
+
+		for (let index = nextFrames.length - 1; index >= 0; index--) {
+			const nextFrame = nextFrames[index];
+			if (nextFrame) {
+				stack.push(nextFrame);
 			}
 		}
 	}
 
 	return { depth: globalMaxDepth, violation: deepestViolation };
+}
+
+/**
+ * Throws for impossible selection kinds. This should only run when a
+ * malformed or manually constructed AST bypasses GraphQL parser guarantees.
+ */
+function throwUnhandledSelectionKind(selection: SelectionNode): never {
+	throw new Error(`Unhandled selection kind: ${selection.kind}`);
 }
 
 /**

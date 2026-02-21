@@ -98,6 +98,20 @@
 			white-space: nowrap;
 		}
 
+		.header-left h1 a {
+			border-bottom: 1px solid transparent;
+			color: inherit;
+			text-decoration: none;
+			transition: border-color 0.15s ease, color 0.15s ease;
+		}
+
+		.header-left h1 a:hover,
+		.header-left h1 a:focus-visible {
+			border-bottom-color: rgba(212, 162, 76, 0.75);
+			color: #F2F2F2;
+			outline: none;
+		}
+
 		.header-center {
 			align-items: center;
 			display: flex;
@@ -663,17 +677,29 @@
 		}
 
 		.panel-list li {
-			align-items: center;
 			border-radius: 4px;
+			list-style: none;
+		}
+
+		.panel-link {
+			align-items: center;
+			background: transparent;
+			border: none;
+			border-radius: 4px;
+			color: var(--text);
 			cursor: pointer;
 			display: flex;
+			font-family: inherit;
 			font-size: 12px;
 			gap: 8px;
 			padding: 4px 8px;
+			text-align: left;
 			transition: background 0.15s ease;
+			width: 100%;
 		}
 
-		.panel-list li:hover { background: var(--bg-elevated); }
+		.panel-link:hover { background: var(--bg-elevated); }
+		.panel-link:focus-visible { background: var(--bg-elevated); }
 
 		.panel-list .list-dot {
 			border-radius: 50%;
@@ -1298,17 +1324,59 @@
 		/* Mobile */
 		@media (max-width: 768px) {
 			:root {
-				--header-h: 48px;
+				--header-h: 84px;
 			}
 
-			#header { padding: 0 16px; }
+			#header {
+				align-content: flex-start;
+				flex-wrap: wrap;
+				gap: 5px;
+				height: auto;
+				padding: 6px 12px 4px;
+			}
 
-			.header-center { display: none; }
-			.header-right { gap: 6px; }
-			.header-search-meta { display: none; }
+			.header-left {
+				flex: 1 1 42%;
+				order: 1;
+			}
+			.header-left h1 { font-size: 10px; }
+			.header-right {
+				flex: 1 1 56%;
+				gap: 6px;
+				justify-content: flex-end;
+				order: 2;
+			}
+			.header-center {
+				display: flex;
+				flex: 1 1 100%;
+				gap: 6px;
+				min-width: 0;
+				order: 3;
+				overflow-x: auto;
+				padding-bottom: 0;
+				scrollbar-width: none;
+			}
+			.header-center::-webkit-scrollbar { display: none; }
+			.filter-chip {
+				flex: 0 0 auto;
+				font-size: 10px;
+				padding: 5px 10px 5px 9px;
+			}
+			.header-search-meta {
+				border: 0;
+				clip: rect(0 0 0 0);
+				clip-path: inset(50%);
+				height: 1px;
+				margin: -1px;
+				overflow: hidden;
+				padding: 0;
+				position: absolute;
+				white-space: nowrap;
+				width: 1px;
+			}
 			.header-search-wrap {
 				flex: 1;
-				max-width: min(48vw, 210px);
+				max-width: min(56vw, 240px);
 			}
 			.header-search { width: 100%; }
 
@@ -1427,11 +1495,20 @@
 		@media (max-width: 480px) {
 			.lab-segment-btn { font-size: 9px; padding: 5px 4px; }
 
-			#header { padding: 0 12px; }
+			:root {
+				--header-h: 86px;
+			}
 
-			.header-left h1 { font-size: 10px; }
+			#header { padding: 6px 10px 4px; }
+
+			.header-left h1 { font-size: 9px; }
 			.header-right { gap: 4px; }
-			.header-search-wrap { max-width: min(44vw, 150px); }
+			.header-center { gap: 4px; }
+			.filter-chip {
+				font-size: 9px;
+				padding: 4px 8px;
+			}
+			.header-search-wrap { max-width: min(54vw, 185px); }
 			.header-search {
 				font-size: 9px;
 				padding-left: 8px;
@@ -1526,15 +1603,17 @@
 	     ============================================================ -->
 	<header id="header">
 		<div class="header-left">
-			<h1>graphql-query-depth-limit-esm</h1>
+			<h1>
+				<a href="https://github.com/lafittemehdy/graphql-query-depth-limit-esm" target="_blank" rel="noopener noreferrer" title="Open repository on GitHub">graphql-query-depth-limit-esm</a>
+			</h1>
 		</div>
 		<div class="header-center" id="module-filters"></div>
 		<div class="header-right">
 			<div class="header-search-wrap">
-				<input type="text" class="header-search" id="node-search" placeholder="Search nodes..." aria-label="Search nodes by name" autocomplete="off" spellcheck="false">
+				<input type="text" class="header-search" id="node-search" placeholder="Search nodes..." aria-label="Search nodes by name" aria-describedby="node-search-meta" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
 				<button type="button" class="header-search-clear" id="node-search-clear" aria-label="Clear search" title="Clear search">&times;</button>
 			</div>
-			<span class="header-search-meta" id="node-search-meta" aria-live="polite"></span>
+			<span class="header-search-meta" id="node-search-meta" role="status" aria-live="polite" aria-atomic="true"></span>
 			<button type="button" class="header-btn" id="fit-btn" title="Fit all nodes (F)" aria-label="Fit all nodes to viewport">Fit All</button>
 		</div>
 	</header>
@@ -1610,7 +1689,7 @@
 				{ name: "options?", type: "DepthLimitOptions | DepthCallback" },
 				{ name: "callback?", type: "DepthCallback" },
 			],
-			lines: [85, 97],
+			lines: [86, 98],
 			module: "depth-limit",
 			output: { type: "ValidationRule" },
 			visibility: "public",
@@ -1624,7 +1703,7 @@
 				{ name: "options", type: "DepthLimitOptions | DepthCallback | undefined" },
 				{ name: "callback", type: "DepthCallback | undefined" },
 			],
-			lines: [252, 284],
+			lines: [236, 268],
 			module: "depth-limit",
 			output: { type: "{ callback?, options? }" },
 			visibility: "private",
@@ -1638,7 +1717,7 @@
 				{ name: "options?", type: "NormalizedDepthLimitOptions" },
 				{ name: "callback?", type: "DepthCallback" },
 			],
-			lines: [114, 240],
+			lines: [115, 224],
 			module: "depth-limit",
 			output: { type: "ValidationRule" },
 			visibility: "private",
@@ -1651,7 +1730,7 @@
 			inputs: [
 				{ name: "options", type: "DepthLimitOptions" },
 			],
-			lines: [289, 319],
+			lines: [273, 303],
 			module: "depth-limit",
 			output: { type: "NormalizedDepthLimitOptions" },
 			visibility: "private",
@@ -1663,7 +1742,7 @@
 			inputs: [
 				{ name: "definitions", type: "readonly DefinitionNode[]" },
 			],
-			lines: [446, 462],
+			lines: [464, 480],
 			module: "depth-engine",
 			output: { type: "{ fragments, operations }" },
 			visibility: "exported",
@@ -1673,7 +1752,7 @@
 			description: "Creates empty traversal caches for interface and directive lookups during a validation run.",
 			id: "createTraversalCaches",
 			inputs: [],
-			lines: [424, 429],
+			lines: [442, 447],
 			module: "depth-engine",
 			output: { type: "TraversalCaches" },
 			visibility: "exported",
@@ -1691,7 +1770,7 @@
 				{ name: "parentType", type: "GraphQLOutputType | undefined" },
 				{ name: "schema", type: "GraphQLSchema | undefined" },
 			],
-			lines: [155, 387],
+			lines: [155, 397],
 			module: "depth-engine",
 			output: { type: "DepthResult" },
 			visibility: "exported",
@@ -1705,9 +1784,31 @@
 				{ name: "key", type: "string" },
 				{ name: "value", type: "number" },
 			],
-			lines: [346, 353],
+			lines: [388, 395],
 			module: "depth-limit",
 			output: { type: "void" },
+			visibility: "private",
+		},
+		{
+			col: 2,
+			description: "Creates a null-prototype record for storing callback depth results, preventing prototype pollution.",
+			id: "createDepthResultRecord",
+			inputs: [],
+			lines: [330, 332],
+			module: "depth-limit",
+			output: { type: "Record<string, number>" },
+			visibility: "private",
+		},
+		{
+			col: 2,
+			description: "Creates a deterministic allocator for operation names in callback results, resolving collisions with indexed suffixes.",
+			id: "createOperationNameAllocator",
+			inputs: [
+				{ name: "operations", type: "readonly OperationDefinitionNode[]" },
+			],
+			lines: [342, 383],
+			module: "depth-limit",
+			output: { type: "(operation: OperationDefinitionNode) => string" },
 			visibility: "private",
 		},
 		/* ---------- Column 3 ---------- */
@@ -1719,7 +1820,7 @@
 				{ name: "name", type: "string" },
 				{ name: "value", type: "unknown" },
 			],
-			lines: [105, 109],
+			lines: [106, 110],
 			module: "depth-limit",
 			output: { type: "void" },
 			visibility: "private",
@@ -1731,7 +1832,7 @@
 			inputs: [
 				{ name: "ignore", type: "IgnoreRule | IgnoreRule[] | undefined" },
 			],
-			lines: [324, 341],
+			lines: [308, 325],
 			module: "depth-limit",
 			output: { type: "IgnoreRule[] | undefined" },
 			visibility: "private",
@@ -1746,7 +1847,7 @@
 				{ name: "caseInsensitive?", type: "boolean" },
 				{ name: "introspectionMode?", type: "IntrospectionMode" },
 			],
-			lines: [33, 98],
+			lines: [33, 100],
 			module: "ignore",
 			output: { type: "boolean" },
 			visibility: "exported",
@@ -1759,7 +1860,7 @@
 				{ name: "parent", type: "PathNode | undefined" },
 				{ name: "segment", type: "string" },
 			],
-			lines: [492, 494],
+			lines: [510, 512],
 			module: "depth-engine",
 			output: { type: "PathNode" },
 			visibility: "private",
@@ -1777,7 +1878,7 @@
 				{ name: "hasDirectiveLimit", type: "boolean" },
 				{ name: "namedType", type: "GraphQLInterfaceType | GraphQLObjectType" },
 			],
-			lines: [534, 579],
+			lines: [552, 597],
 			module: "depth-engine",
 			output: { type: "DirectiveResolution" },
 			visibility: "private",
@@ -1791,7 +1892,7 @@
 				{ name: "schema", type: "GraphQLSchema | undefined" },
 				{ name: "currentParentType", type: "GraphQLOutputType | undefined" },
 			],
-			lines: [593, 605],
+			lines: [611, 623],
 			module: "depth-engine",
 			output: { type: "GraphQLOutputType | undefined" },
 			visibility: "private",
@@ -1803,9 +1904,21 @@
 			inputs: [
 				{ name: "node", type: "PathNode | undefined" },
 			],
-			lines: [502, 511],
+			lines: [520, 529],
 			module: "depth-engine",
 			output: { type: "string[]" },
+			visibility: "private",
+		},
+		{
+			col: 3,
+			description: "Throws an error for unhandled selection kinds, serving as an exhaustive check for malformed AST nodes.",
+			id: "throwUnhandledSelectionKind",
+			inputs: [
+				{ name: "selection", type: "SelectionNode" },
+			],
+			lines: [403, 405],
+			module: "depth-engine",
+			output: { type: "never" },
 			visibility: "private",
 		},
 		/* ---------- Column 4 ---------- */
@@ -1816,7 +1929,7 @@
 			inputs: [
 				{ name: "rule", type: "unknown" },
 			],
-			lines: [245, 247],
+			lines: [229, 231],
 			module: "depth-limit",
 			output: { type: "boolean" },
 			visibility: "private",
@@ -1841,7 +1954,7 @@
 				{ name: "caches", type: "TraversalCaches" },
 				{ name: "type", type: "GraphQLInterfaceType | GraphQLObjectType" },
 			],
-			lines: [471, 483],
+			lines: [489, 501],
 			module: "depth-engine",
 			output: { type: "GraphQLInterfaceType[]" },
 			visibility: "private",
@@ -1854,7 +1967,7 @@
 			inputs: [
 				{ name: "type", type: "GraphQLInterfaceType | GraphQLObjectType" },
 			],
-			lines: [396, 417],
+			lines: [414, 435],
 			module: "depth-engine",
 			output: { type: "GraphQLInterfaceType[]" },
 			visibility: "private",
@@ -1896,12 +2009,15 @@
 		{ from: "createValidationRule", to: "extractDefinitions" },
 		{ from: "createValidationRule", to: "calculateDepth" },
 		{ from: "createValidationRule", to: "setDepthResult" },
+		{ from: "createValidationRule", to: "createDepthResultRecord" },
+		{ from: "createValidationRule", to: "createOperationNameAllocator" },
 		{ from: "createValidationRule", to: "ERROR_CODES", dashed: true },
 		{ from: "calculateDepth", to: "shouldIgnoreField" },
 		{ from: "calculateDepth", to: "pathPush" },
 		{ from: "calculateDepth", to: "pathToArray" },
 		{ from: "calculateDepth", to: "resolveFieldDirectiveDepth" },
 		{ from: "calculateDepth", to: "resolveTypeCondition" },
+		{ from: "calculateDepth", to: "throwUnhandledSelectionKind" },
 		{ from: "resolveFieldDirectiveDepth", to: "getDepthFromDirective" },
 		{ from: "resolveFieldDirectiveDepth", to: "getCachedInterfaces" },
 		{ from: "getCachedInterfaces", to: "collectInterfaces" },
@@ -2007,6 +2123,8 @@
 			el.dataset.id = node.id;
 			el.dataset.module = node.module;
 			el.dataset.col = String(node.col);
+			el.setAttribute("role", "button");
+			el.setAttribute("aria-label", `${node.id} (${MODULES[node.module].name})`);
 			el.tabIndex = 0;
 			el.style.setProperty("--mod-color", MODULES[node.module].color);
 			el.style.left = `${node.x}px`;
@@ -2137,7 +2255,7 @@
 			callsHtml = `<div class="panel-section-title">Calls</div><ul class="panel-list">` +
 				calls.map(c => {
 					const target = nodeMap[c.to];
-					return `<li data-target="${c.to}"><span class="list-dot" style="background:${MODULES[target.module].color}"></span>${esc(c.to)}${c.dashed ? " <span style='color:var(--text-muted);font-size:10px'>(uses)</span>" : ""}</li>`;
+					return `<li><button type="button" class="panel-link" data-target="${c.to}"><span class="list-dot" style="background:${MODULES[target.module].color}"></span>${esc(c.to)}${c.dashed ? " <span style='color:var(--text-muted);font-size:10px'>(uses)</span>" : ""}</button></li>`;
 				}).join("") + `</ul>`;
 		}
 
@@ -2146,7 +2264,7 @@
 			calledByHtml = `<div class="panel-section-title">Called By</div><ul class="panel-list">` +
 				calledBy.map(c => {
 					const source = nodeMap[c.from];
-					return `<li data-target="${c.from}"><span class="list-dot" style="background:${MODULES[source.module].color}"></span>${esc(c.from)}</li>`;
+					return `<li><button type="button" class="panel-link" data-target="${c.from}"><span class="list-dot" style="background:${MODULES[source.module].color}"></span>${esc(c.from)}</button></li>`;
 				}).join("") + `</ul>`;
 		}
 
@@ -2164,13 +2282,13 @@
 				`<span class="panel-file">${esc(mod.name)}:${node.lines[0]}-${node.lines[1]}</span>` +
 			`</div>` +			`<div class="panel-desc">${esc(node.description)}</div>` +
 			`<div class="panel-section-title">Signature <button class="copy-btn" data-copy-sig title="Copy signature">&#9776;</button></div>` +
-			`<pre class="panel-sig">${sig}</pre>` +
+		`<pre class="panel-sig">${sig}</pre>` +
 			callsHtml +
 			calledByHtml;
 
 		/* Wire up list clicks (fromPanel=true for back navigation) */
-		content.querySelectorAll(".panel-list li[data-target]").forEach(li => {
-			li.addEventListener("click", () => selectNode(li.dataset.target, true));
+		content.querySelectorAll(".panel-list .panel-link[data-target]").forEach(link => {
+			link.addEventListener("click", () => selectNode(link.dataset.target, true));
 		});
 
 		/* Wire copy buttons */
@@ -2265,7 +2383,7 @@
 
 	function isTextInputElement(el) {
 		if (!el) return false;
-		return el.tagName === "INPUT" || el.tagName === "TEXTAREA";
+		return el.isContentEditable || el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT";
 	}
 
 	function isMobileViewport() {
@@ -2275,6 +2393,15 @@
 	function syncAppViewportHeight() {
 		const nextHeight = Math.round(window.visualViewport?.height ?? window.innerHeight);
 		document.documentElement.style.setProperty("--app-vh", `${nextHeight}px`);
+	}
+
+	function syncHeaderHeight() {
+		const header = document.getElementById("header");
+		if (!header) return;
+		const nextHeight = Math.round(header.getBoundingClientRect().height);
+		if (nextHeight > 0) {
+			document.documentElement.style.setProperty("--header-h", `${nextHeight}px`);
+		}
 	}
 
 	function scheduleAutoFit() {
@@ -2693,6 +2820,14 @@
 				selectNode(node.id);
 			});
 
+			/* Keyboard activation */
+			el.addEventListener("keydown", (e) => {
+				if (e.key === "Enter" || e.key === " ") {
+					e.preventDefault();
+					selectNode(node.id);
+				}
+			});
+
 			/* Double-click to zoom into node */
 			el.addEventListener("dblclick", (e) => {
 				e.stopPropagation();
@@ -2790,7 +2925,7 @@
 	   ================================================================= */
 	function setupKeyboard() {
 		document.addEventListener("keydown", (e) => {
-			if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+			if (isTextInputElement(e.target)) return;
 
 			switch (e.key.toLowerCase()) {
 				case "f":
@@ -2899,6 +3034,27 @@
 	}
 
 	/**
+	 * Reads and clamps max-depth input to an integer in [0, 100].
+	 * Returns NaN when the field is empty or invalid.
+	 */
+	function readMaxDepthInput(normalizeInput = false) {
+		const input = document.getElementById("lab-max-depth");
+		if (!input) return Number.NaN;
+
+		const rawValue = input.value.trim();
+		if (!/^-?\d+$/.test(rawValue)) {
+			return Number.NaN;
+		}
+
+		const parsed = Number.parseInt(rawValue, 10);
+		const clamped = Math.min(100, Math.max(0, parsed));
+		if (normalizeInput && String(clamped) !== rawValue) {
+			input.value = String(clamped);
+		}
+		return clamped;
+	}
+
+	/**
 	 * Parses the current query and updates the depth gauge.
 	 * Fill width and color state (safe/warn/crit) reflect depth vs. limit.
 	 */
@@ -2907,7 +3063,7 @@
 		const val = document.getElementById("depth-val");
 		if (!fill || !val) return;
 
-		const maxDepth = parseInt(document.getElementById("lab-max-depth").value, 10);
+		const maxDepth = readMaxDepthInput(true);
 		const maxEl = document.getElementById("depth-max");
 		if (maxEl) maxEl.textContent = `/${Number.isNaN(maxDepth) ? "?" : maxDepth}`;
 
@@ -3002,20 +3158,26 @@
 				operations.push(def);
 			}
 		}
-		/* createValidationRule → extractDefinitions */
+		/* createValidationRule -> extractDefinitions */
 		steps.push({
 			id: "extractDefinitions",
 			label: `${operations.length} operation(s), ${fragments.size} fragment(s)`,
 		});
 
-		/* createValidationRule → createTraversalCaches */
+		/* createValidationRule -> createOperationNameAllocator */
+		steps.push({
+			id: "createOperationNameAllocator",
+			label: "Prepare operation name allocator",
+		});
+
+		/* createValidationRule -> createTraversalCaches */
 		steps.push({ id: "createTraversalCaches", label: "Initialize caches" });
 
 		if (operations.length === 0) {
 			return { depth: 0, error: "No operations found", steps, violation: null };
 		}
 
-		/* createValidationRule → calculateDepth */
+		/* createValidationRule -> calculateDepth */
 		steps.push({ id: "calculateDepth", label: "Begin DFS traversal" });
 
 		const stack = [{
@@ -3037,7 +3199,7 @@
 					const hasChildren = Boolean(selection.selectionSet);
 
 					/* Real code: leaf fields (no selectionSet) are skipped before
-					   calling shouldIgnoreField (depth-engine.ts L204) */
+					   calling shouldIgnoreField (depth-engine.ts L206) */
 					if (!hasChildren) continue;
 
 					/* calculateDepth → shouldIgnoreField */
@@ -3113,7 +3275,7 @@
 							const newVisited = new Set(frame.visitedFragments);
 							newVisited.add(fragName);
 							/* calculateDepth → resolveTypeCondition (if type condition)
-							   (depth-engine.ts L343-345) */
+							   (depth-engine.ts L346-348) */
 							if (frag.typeCondition) {
 								steps.push({
 									id: "resolveTypeCondition",
@@ -3129,7 +3291,7 @@
 						}
 					}
 				} else if (selection.kind === Kind.INLINE_FRAGMENT) {
-					/* calculateDepth → resolveTypeCondition (depth-engine.ts L360-363) */
+					/* calculateDepth → resolveTypeCondition (depth-engine.ts L364-366) */
 					const typeName = selection.typeCondition?.name?.value;
 					if (typeName) {
 						steps.push({
@@ -3174,7 +3336,7 @@
 				`</div>` +
 			`</div>` +
 			`<div class="lab-section lab-editor-section">` +
-				`<textarea class="lab-editor" id="lab-editor" spellcheck="false" placeholder="// ENTER QUERY VECTOR..."></textarea>` +
+				`<textarea class="lab-editor" id="lab-editor" aria-label="GraphQL query editor" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="// ENTER QUERY VECTOR..."></textarea>` +
 			`</div>` +
 			`<div class="lab-control-deck">` +
 				`<div class="deck-module params">` +
@@ -3183,7 +3345,7 @@
 						`<button class="stepper-btn" id="stepper-dec" aria-label="Decrease limit">` +
 							`<svg width="8" height="8" viewBox="0 0 10 10"><path d="M1 5h8" stroke="currentColor" stroke-width="2"/></svg>` +
 						`</button>` +
-						`<input type="number" id="lab-max-depth" class="stepper-input" min="0" max="100" value="5" aria-label="Maximum depth">` +
+						`<input type="number" id="lab-max-depth" class="stepper-input" min="0" max="100" step="1" inputmode="numeric" value="5" aria-label="Maximum depth">` +
 						`<button class="stepper-btn" id="stepper-inc" aria-label="Increase limit">` +
 							`<svg width="8" height="8" viewBox="0 0 10 10"><path d="M1 5h8 M5 1v8" stroke="currentColor" stroke-width="2"/></svg>` +
 						`</button>` +
@@ -3304,7 +3466,7 @@
 		labRunning = true;
 
 		const queryString = document.getElementById("lab-editor").value.trim();
-		const maxDepth = parseInt(document.getElementById("lab-max-depth").value, 10);
+		const maxDepth = readMaxDepthInput(true);
 
 		if (!queryString) {
 			showLabResult({ depth: 0, error: "Query is empty", steps: [], violation: null });
@@ -3640,8 +3802,8 @@
 			if (dot) dot.className = "status-dot blocked";
 		} else {
 			badge.className = "result-badge pass";
-			const md = parseInt(document.getElementById("lab-max-depth").value, 10);
-			badge.textContent = `PASS \u2014 depth ${result.depth} / max ${md}`;
+			const md = readMaxDepthInput(false);
+			badge.textContent = `PASS \u2014 depth ${result.depth} / max ${Number.isNaN(md) ? "?" : md}`;
 			if (dot) dot.className = "status-dot active";
 		}
 
@@ -3716,7 +3878,7 @@
 	function setupKeyboardNav() {
 		document.addEventListener("keydown", (e) => {
 			if (!selectedNodeId) return;
-			if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA") return;
+			if (isTextInputElement(e.target)) return;
 
 			if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
 				e.preventDefault();
@@ -3904,7 +4066,6 @@
 				c.classList.remove("search-dimmed");
 			});
 			input.classList.remove("has-match", "no-match");
-			input.setAttribute("aria-invalid", "false");
 			setSearchMeta("");
 		}
 
@@ -3940,7 +4101,6 @@
 
 			input.classList.toggle("has-match", hasMatches);
 			input.classList.toggle("no-match", !hasMatches);
-			input.setAttribute("aria-invalid", hasMatches ? "false" : "true");
 			setSearchMeta(hasMatches ? `${matches.length} match${matches.length === 1 ? "" : "es"}` : "No matches");
 
 			document.querySelectorAll(".node").forEach((n) => {
@@ -4034,13 +4194,23 @@
 	   ================================================================= */
 	function init() {
 		syncAppViewportHeight();
+		syncHeaderHeight();
 
-		window.addEventListener("resize", syncAppViewportHeight, { passive: true });
+		window.addEventListener("resize", () => {
+			syncAppViewportHeight();
+			syncHeaderHeight();
+		}, { passive: true });
 		window.addEventListener("orientationchange", () => {
-			setTimeout(syncAppViewportHeight, 120);
+			setTimeout(() => {
+				syncAppViewportHeight();
+				syncHeaderHeight();
+			}, 120);
 		});
 		if (window.visualViewport) {
-			window.visualViewport.addEventListener("resize", syncAppViewportHeight);
+			window.visualViewport.addEventListener("resize", () => {
+				syncAppViewportHeight();
+				syncHeaderHeight();
+			});
 			window.visualViewport.addEventListener("scroll", syncAppViewportHeight);
 		}
 
@@ -4048,6 +4218,7 @@
 		renderConnections();
 		renderNodes();
 		renderFilterChips();
+		syncHeaderHeight();
 
 		renderQueryLab();
 		setupZoomPan();
@@ -4065,6 +4236,14 @@
 		new ResizeObserver(() => {
 			scheduleAutoFit();
 		}).observe(document.getElementById("canvas"));
+
+		const header = document.getElementById("header");
+		if (header) {
+			new ResizeObserver(() => {
+				syncHeaderHeight();
+				scheduleAutoFit();
+			}).observe(header);
+		}
 
 		/* Initial fit */
 		fitAll(false);

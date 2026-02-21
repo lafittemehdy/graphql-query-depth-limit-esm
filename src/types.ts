@@ -1,6 +1,9 @@
 /**
  * Callback invoked after depth validation with per-operation depth results.
  *
+ * The `depths` argument is always a plain object (Object.prototype) for
+ * compatibility with common object utilities and `hasOwnProperty` access.
+ *
  * @example
  * ```typescript
  * const callback: DepthCallback = (depths) => {

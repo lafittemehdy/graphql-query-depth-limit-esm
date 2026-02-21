@@ -1,6 +1,7 @@
 import {
 	type ASTVisitor,
 	GraphQLError,
+	type OperationDefinitionNode,
 	type ValidationContext,
 	type ValidationRule,
 } from "graphql";
@@ -55,7 +56,7 @@ type NormalizedDepthLimitOptions = Omit<DepthLimitOptions, "ignore"> & {
  *
  * @param maxDepth - Maximum allowed depth for queries (must be a non-negative integer)
  * @param options - Optional configuration for ignore rules, directives, and case sensitivity
- * @param callback - Optional callback invoked with depth results for each operation
+ * @param callback - Optional callback invoked with per-operation depths as a plain object payload
  * @returns A GraphQL validation rule function
  * @throws {Error} If `maxDepth` is not a non-negative integer
  *
@@ -119,10 +120,11 @@ function createValidationRule(
 	const shortCircuit = options?.shortCircuit ?? callback == null;
 
 	return function depthLimitValidationRule(context: ValidationContext): ASTVisitor {
-		let anonymousCount = 0;
 		const caches = createTraversalCaches();
 		const document = context.getDocument();
-		const depths: Record<string, number> | undefined = callback ? {} : undefined;
+		const depths: Record<string, number> | undefined = callback
+			? createDepthResultRecord()
+			: undefined;
 		const { fragments, operations } = extractDefinitions(document.definitions);
 		const schema = context.getSchema() ?? undefined;
 		// By design: when useDirective is true but no schema is available,
@@ -134,14 +136,7 @@ function createValidationRule(
 		// schema. See DepthLimitOptions.useDirective JSDoc for documentation.
 		const useDirective = Boolean(schema) && (options?.useDirective ?? false);
 
-		// Pre-collect named operation names to avoid key collisions with
-		// generated anonymous operation keys (e.g., "anonymous", "anonymous_1").
-		const namedOperationNames = new Set<string>();
-		for (const op of operations) {
-			if (op.name?.value) {
-				namedOperationNames.add(op.name.value);
-			}
-		}
+		const nextOperationName = createOperationNameAllocator(operations);
 
 		const config: TraversalConfig = {
 			caseInsensitiveIgnore: options?.caseInsensitiveIgnore ?? false,
@@ -167,18 +162,7 @@ function createValidationRule(
 				};
 
 		for (const operation of operations) {
-			let operationName: string;
-			if (operation.name?.value) {
-				operationName = operation.name.value;
-			} else {
-				let candidate = anonymousCount === 0 ? "anonymous" : `anonymous_${anonymousCount}`;
-				while (namedOperationNames.has(candidate)) {
-					anonymousCount++;
-					candidate = `anonymous_${anonymousCount}`;
-				}
-				operationName = candidate;
-				anonymousCount++;
-			}
+			const operationName = nextOperationName(operation);
 			const rootType = rootTypeMap[operation.operation];
 
 			let result: ReturnType<typeof calculateDepth>;
@@ -229,7 +213,8 @@ function createValidationRule(
 		}
 
 		if (callback && depths) {
-			callback(depths);
+			// Keep callback payload as a plain object for compatibility.
+			callback({ ...depths });
 		}
 
 		// All depth validation is performed eagerly above because fragment
@@ -338,6 +323,64 @@ function normalizeIgnoreRules(ignore: DepthLimitOptions["ignore"]): IgnoreRule[]
 	}
 
 	return rules as IgnoreRule[];
+}
+
+/**
+ * Creates a null-prototype record for internal depth result accumulation.
+ */
+function createDepthResultRecord(): Record<string, number> {
+	return Object.create(null) as Record<string, number>;
+}
+
+/**
+ * Creates a stable allocator for callback operation names.
+ *
+ * Ensures:
+ * - Anonymous names never collide with explicit operation names
+ * - Duplicate named operations receive deterministic suffixes
+ * - Generated names do not overwrite previous callback entries
+ */
+function createOperationNameAllocator(
+	operations: readonly OperationDefinitionNode[],
+): (operation: OperationDefinitionNode) => string {
+	const explicitNames = new Set<string>();
+	for (const operation of operations) {
+		if (operation.name?.value) {
+			explicitNames.add(operation.name.value);
+		}
+	}
+
+	const usedNames = new Set<string>();
+	const namedCounts = new Map<string, number>();
+	let anonymousCount = 0;
+
+	return (operation: OperationDefinitionNode): string => {
+		const explicitName = operation.name?.value;
+		if (explicitName) {
+			let suffix = namedCounts.get(explicitName) ?? 0;
+			let candidate = suffix === 0 ? explicitName : `${explicitName}_${suffix}`;
+
+			while (usedNames.has(candidate) || (suffix > 0 && explicitNames.has(candidate))) {
+				suffix++;
+				candidate = `${explicitName}_${suffix}`;
+			}
+
+			namedCounts.set(explicitName, suffix + 1);
+			usedNames.add(candidate);
+			return candidate;
+		}
+
+		let suffix = anonymousCount;
+		let candidate = suffix === 0 ? "anonymous" : `anonymous_${suffix}`;
+		while (usedNames.has(candidate) || explicitNames.has(candidate)) {
+			suffix++;
+			candidate = `anonymous_${suffix}`;
+		}
+
+		anonymousCount = suffix + 1;
+		usedNames.add(candidate);
+		return candidate;
+	};
 }
 
 /**

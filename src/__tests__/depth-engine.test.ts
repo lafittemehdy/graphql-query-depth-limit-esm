@@ -1,6 +1,8 @@
-import { parse, validate } from "graphql";
+import { buildSchema, parse, validate } from "graphql";
 import { describe, expect, it, vi } from "vitest";
+import { calculateDepth, createTraversalCaches, type TraversalConfig } from "../depth-engine.js";
 import { depthLimit } from "../depth-limit.js";
+import { depthDirectiveTypeDefs } from "../directives.js";
 import { createMockContext, directiveSchema, simpleSchema } from "./fixtures.js";
 
 // ---------------------------------------------------------------------------
@@ -230,6 +232,91 @@ describe("depth engine", () => {
 			validate(simpleSchema, query, [depthLimit(10, undefined, callback)]);
 			// user(1) -> inline fragment (no depth) -> friends(2) -> name = depth 2
 			expect(callback).toHaveBeenCalledWith({ Q: 2 });
+		});
+	});
+
+	describe("defensive non-composite field guard", () => {
+		it("skips scalar fields that erroneously have selections", () => {
+			const callback = vi.fn();
+			// name is a scalar (String) but the query erroneously has a selectionSet.
+			// GraphQL's own validation would reject this, but the depth engine
+			// handles it defensively when run standalone.
+			const query = parse("{ user { name { nonexistent } } }");
+			const { context } = createMockContext(query, simpleSchema);
+
+			const rule = depthLimit(10, undefined, callback);
+			rule(context);
+
+			// name's selectionSet is skipped because String is not composite.
+			// Only user(1) counts → depth = 1
+			expect(callback).toHaveBeenCalledWith({ anonymous: 1 });
+		});
+	});
+
+	describe("exhaustive selection guard", () => {
+		it("throws for unknown selection kinds in malformed AST input", () => {
+			const malformedNode = {
+				selectionSet: {
+					selections: [{ kind: "BROKEN_KIND" }],
+				},
+			} as unknown as Parameters<typeof calculateDepth>[4];
+
+			const config: TraversalConfig = {
+				caseInsensitiveIgnore: false,
+				directiveMode: "cap",
+				ignore: undefined,
+				ignoreMode: "exclude",
+				introspectionMode: "typename",
+				limitIgnoredRecursion: false,
+				shortCircuit: false,
+				useDirective: false,
+			};
+
+			expect(() =>
+				calculateDepth(
+					createTraversalCaches(),
+					config,
+					new Map(),
+					10,
+					malformedNode,
+					undefined,
+					undefined,
+				),
+			).toThrow("Unhandled selection kind: BROKEN_KIND");
+		});
+	});
+
+	describe("interface directive cache", () => {
+		it("reuses cached interface list across different fields on the same type", () => {
+			const cacheSchema = buildSchema(`
+				${depthDirectiveTypeDefs}
+				type Query { node: TreeNode }
+				interface Node {
+					children: [Node] @depth(max: 2)
+					siblings: [Node] @depth(max: 3)
+				}
+				type TreeNode implements Node {
+					children: [Node]
+					siblings: [Node]
+					value: String
+				}
+			`);
+
+			const callback = vi.fn();
+			// Both children and siblings lack @depth on TreeNode, so the engine
+			// looks up Node's interface for both. The second lookup hits the
+			// interface cache (getCachedInterfaces).
+			const query = parse(`{
+				node {
+					children { ... on TreeNode { value } }
+					siblings { ... on TreeNode { value } }
+				}
+			}`);
+			validate(cacheSchema, query, [depthLimit(10, { useDirective: true }, callback)]);
+
+			// node.children(1) → value = 2
+			// node.siblings(1) → value = 2
+			expect(callback).toHaveBeenCalledWith({ anonymous: 2 });
 		});
 	});
 

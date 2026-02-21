@@ -149,11 +149,36 @@ describe("shouldIgnoreField", () => {
 	});
 
 	describe("frozen or exotic RegExp rules", () => {
+		it("includes stringified value when RegExp throws a non-Error", () => {
+			const regex = /Connection$/;
+			// Override test to throw a non-Error value, covering the
+			// String(error) branch in the RegExp error handler.
+			regex.test = () => {
+				throw "non-error thrown by test";
+			};
+
+			try {
+				shouldIgnoreField("usersConnection", [regex]);
+				expect.fail("should have thrown");
+			} catch (error) {
+				expect(error).toBeInstanceOf(Error);
+				expect((error as Error).name).toBe("IgnoreRuleError");
+				expect((error as Error).message).toContain("non-error thrown by test");
+			}
+		});
+
 		it("works with non-global frozen RegExp (no lastIndex mutation needed)", () => {
 			const frozenRegex = Object.freeze(/Connection$/);
 			// Non-global frozen regexes are safe because lastIndex is not mutated.
 			expect(() => shouldIgnoreField("usersConnection", [frozenRegex])).not.toThrow();
 			expect(shouldIgnoreField("usersConnection", [frozenRegex])).toBe(true);
+		});
+
+		it("works with unfrozen global RegExp (lastIndex reset succeeds)", () => {
+			const globalRegex = /Connection$/g;
+			globalRegex.lastIndex = 5;
+			expect(shouldIgnoreField("usersConnection", [globalRegex])).toBe(true);
+			expect(shouldIgnoreField("usersConnection", [globalRegex])).toBe(true);
 		});
 
 		it("wraps error from frozen global RegExp as IgnoreRuleError", () => {
@@ -168,13 +193,6 @@ describe("shouldIgnoreField", () => {
 				expect((error as Error).name).toBe("IgnoreRuleError");
 				expect((error as Error).message).toContain('field "usersConnection"');
 			}
-		});
-
-		it("works with unfrozen global RegExp (lastIndex reset succeeds)", () => {
-			const globalRegex = /Connection$/g;
-			globalRegex.lastIndex = 5;
-			expect(shouldIgnoreField("usersConnection", [globalRegex])).toBe(true);
-			expect(shouldIgnoreField("usersConnection", [globalRegex])).toBe(true);
 		});
 
 		it("wraps error from frozen sticky RegExp as IgnoreRuleError", () => {
