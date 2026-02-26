@@ -180,9 +180,10 @@ export type IgnoreMode = "exclude" | "skip";
  * - `RegExp` — pattern match against field names
  * - `function` — custom predicate receiving the field name
  *
- * **Note:** User-provided `RegExp` patterns are executed against field names.
- * Patterns with catastrophic backtracking (e.g., `/^(a+)+$/`) may cause
- * performance issues. Use simple, linear-time patterns where possible.
+ * **Safety:** `RegExp` patterns are validated at setup time for common
+ * ReDoS (catastrophic backtracking) structures such as nested quantifiers
+ * (e.g., `/(a+)+$/`). Patterns flagged as unsafe are rejected with a
+ * descriptive `TypeError`. Use simple, linear-time patterns where possible.
  *
  * @example
  * ```typescript

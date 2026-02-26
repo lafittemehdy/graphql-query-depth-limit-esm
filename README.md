@@ -6,12 +6,24 @@
 [![npm version](https://img.shields.io/npm/v/graphql-query-depth-limit-esm?logo=npm)](https://www.npmjs.com/package/graphql-query-depth-limit-esm)
 [![npm downloads](https://img.shields.io/npm/dm/graphql-query-depth-limit-esm?logo=npm)](https://www.npmjs.com/package/graphql-query-depth-limit-esm)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Node >=22](https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Provenance](https://img.shields.io/badge/provenance-verified-brightgreen?logo=npm)](https://www.npmjs.com/package/graphql-query-depth-limit-esm)
 
 Production-ready GraphQL query depth limiting as a validation rule. Prevents denial-of-service attacks from deeply nested queries by enforcing a configurable maximum depth.
 
-Explore the library's internal function architecture with the **[interactive node-based visualization](https://lafittemehdy.github.io/graphql-query-depth-limit-esm/architecture.html)**.
+**[Interactive demo](https://lafittemehdy.github.io/graphql-query-depth-limit-esm/)** — see depth analysis in action with preset queries, an AST tree viewer, and a depth gauge.
+
+## Interactive Demo
+
+**[Try it live](https://lafittemehdy.github.io/graphql-query-depth-limit-esm/)** or run locally:
+
+```bash
+cd examples/visualization
+npm install
+npm run dev
+```
+
+Includes preset queries (simple lookups through deeply nested attacks), an AST tree viewer with depth badges, and a depth gauge with pass/fail verdict.
 
 ## Features
 
@@ -29,18 +41,18 @@ Explore the library's internal function architecture with the **[interactive nod
 ## Installation
 
 ```bash
-pnpm add graphql-query-depth-limit-esm graphql
+npm install graphql-query-depth-limit-esm graphql
 ```
 
 ```bash
-npm install graphql-query-depth-limit-esm graphql
+pnpm add graphql-query-depth-limit-esm graphql
 ```
 
 ```bash
 yarn add graphql-query-depth-limit-esm graphql
 ```
 
-## Quick Start
+## Quickstart
 
 ```ts
 import { specifiedRules, validate } from "graphql";
@@ -302,7 +314,7 @@ Monitor query depths with an optional [`callback`](#depthcallback) that receives
 
 ```ts
 const rule = depthLimit(10, {}, (depths) => {
-  // { "GetUser": 3, "ListPosts": 5, "anonymous": 2 }
+  // { "GetUser": 3, "ListPosts": 5, "[anonymous]": 2 }
   for (const [operation, depth] of Object.entries(depths)) {
     console.log(`Operation "${operation}" has depth ${depth}`);
   }
@@ -517,6 +529,17 @@ depthLimit(10, { directiveMode: "override", useDirective: true });
 **v2:** When no callback is provided, the engine stops traversal immediately on the first violation. This is a performance improvement and DoS protection — a deeply nested query with a small `maxDepth` no longer burns CPU traversing thousands of levels.
 
 **Impact:** This is transparent to most users. The only observable difference is that error messages may report the depth at the first violation rather than the deepest violation when multiple branches exceed the limit. If you need the true maximum depth, provide a callback.
+
+## Related Packages
+
+This package is part of a suite of GraphQL security tools that work independently or together to protect your API:
+
+| Package | Purpose |
+|---|---|
+| [`graphql-query-complexity-esm`](https://github.com/lafittemehdy/graphql-query-complexity-esm) | Complexity analysis — assign cost scores to fields and reject expensive queries |
+| [`graphql-rate-limit-redis-esm`](https://github.com/lafittemehdy/graphql-rate-limit-redis-esm) | Rate limiting — Redis-backed per-field rate limiting via `@rateLimit` directive |
+
+**Recommended layering:** Use depth limiting as a fast, cheap first gate, complexity analysis for fine-grained cost control, and rate limiting for per-client throttling.
 
 ## License
 

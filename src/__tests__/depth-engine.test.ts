@@ -249,7 +249,7 @@ describe("depth engine", () => {
 
 			// name's selectionSet is skipped because String is not composite.
 			// Only user(1) counts → depth = 1
-			expect(callback).toHaveBeenCalledWith({ anonymous: 1 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 1 });
 		});
 	});
 
@@ -316,7 +316,7 @@ describe("depth engine", () => {
 
 			// node.children(1) → value = 2
 			// node.siblings(1) → value = 2
-			expect(callback).toHaveBeenCalledWith({ anonymous: 2 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 2 });
 		});
 	});
 
@@ -343,7 +343,7 @@ describe("depth engine", () => {
 			const callback = vi.fn();
 
 			validate(simpleSchema, query, [depthLimit(2, undefined, callback)]);
-			expect(callback).toHaveBeenCalledWith({ anonymous: 11 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 11 });
 		});
 	});
 });

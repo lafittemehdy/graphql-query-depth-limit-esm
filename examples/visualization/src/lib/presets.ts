@@ -1,0 +1,160 @@
+/**
+ * Preset queries for the interactive playground.
+ *
+ * @module presets
+ */
+
+import type { Preset } from "../types/analysis";
+
+/** Default preset loaded on page init. */
+export const DEFAULT_PRESET_ID = "simple";
+
+/** Display order for preset buttons. */
+export const PRESET_ORDER = [
+  "simple",
+  "attack",
+  "fragment",
+  "ignore",
+  "recursion",
+  "introspection",
+];
+
+/** All available presets, alphabetically ordered by id. */
+export const PRESETS: Preset[] = [
+  {
+    id: "attack",
+    label: "Deep / Attack",
+    options: { ignore: [], ignoreIntrospection: "typename", maxDepth: 3 },
+    query: [
+      "query DeepAttack {",
+      '  user(id: "1") {',
+      "    friends {",
+      "      friends {",
+      "        friends {",
+      "          friends {",
+      "            friends {",
+      "              name",
+      "            }",
+      "          }",
+      "        }",
+      "      }",
+      "    }",
+      "  }",
+      "}",
+    ].join("\n"),
+  },
+  {
+    id: "fragment",
+    label: "Fragment",
+    options: { ignore: [], ignoreIntrospection: "typename", maxDepth: 4 },
+    query: [
+      "query WithFragments {",
+      '  user(id: "1") {',
+      "    ...UserFields",
+      "    ... on Admin {",
+      "      role",
+      "      permissions {",
+      "        scope",
+      "      }",
+      "    }",
+      "  }",
+      "}",
+      "",
+      "fragment UserFields on User {",
+      "  name",
+      "  posts {",
+      "    title",
+      "    comments {",
+      "      text",
+      "    }",
+      "  }",
+      "}",
+    ].join("\n"),
+  },
+  {
+    id: "ignore",
+    label: "Ignore",
+    options: { ignore: ["metadata"], ignoreIntrospection: "typename", maxDepth: 3 },
+    query: [
+      "query WithIgnore {",
+      '  user(id: "1") {',
+      "    metadata {",
+      "      internalId",
+      "    }",
+      "    posts {",
+      "      title",
+      "      comments {",
+      "        text",
+      "        author {",
+      "          name",
+      "        }",
+      "      }",
+      "    }",
+      "  }",
+      "}",
+    ].join("\n"),
+  },
+  {
+    id: "introspection",
+    label: "Introspection",
+    options: { ignore: [], ignoreIntrospection: "all", maxDepth: 3 },
+    query: [
+      "query IntrospectionQuery {",
+      "  __schema {",
+      "    types {",
+      "      name",
+      "      fields {",
+      "        name",
+      "        type {",
+      "          name",
+      "        }",
+      "      }",
+      "    }",
+      "  }",
+      "}",
+    ].join("\n"),
+  },
+  {
+    id: "recursion",
+    label: "Recursion Guard",
+    options: {
+      ignore: ["friends"],
+      ignoreIntrospection: "typename",
+      limitIgnoredRecursion: true,
+      maxDepth: 3,
+    },
+    query: [
+      "# Toggle 'Recursion Guard' to see the difference.",
+      "# Without it, ignored recursive fields allow",
+      "# unbounded depth since the counter never advances.",
+      "query RecursiveIgnore {",
+      '  user(id: "1") {',
+      "    friends {",
+      "      friends {",
+      "        friends {",
+      "          friends {",
+      "            name",
+      "          }",
+      "        }",
+      "      }",
+      "    }",
+      "  }",
+      "}",
+    ].join("\n"),
+  },
+  {
+    id: "simple",
+    label: "Simple",
+    options: { ignore: [], ignoreIntrospection: "typename", maxDepth: 5 },
+    query: [
+      "query GetUser {",
+      '  user(id: "1") {',
+      "    name",
+      "    posts {",
+      "      title",
+      "    }",
+      "  }",
+      "}",
+    ].join("\n"),
+  },
+];

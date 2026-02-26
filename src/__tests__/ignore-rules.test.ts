@@ -318,7 +318,7 @@ describe("depthLimit with ignoreMode: exclude", () => {
 		validate(schema, query, [
 			depthLimit(10, { ignore: ["friends"], ignoreMode: "exclude" }, callback),
 		]);
-		expect(callback).toHaveBeenCalledWith({ anonymous: 1 });
+		expect(callback).toHaveBeenCalledWith({ "[anonymous]": 1 });
 	});
 
 	it("enforces depth limits on subtrees of ignored fields", () => {
@@ -353,7 +353,7 @@ describe("depthLimit with ignoreMode: exclude", () => {
 			depthLimit(10, { ignore: ["friends"], ignoreMode: "skip" }, callback),
 		]);
 		// friends subtree skipped, only user(1) counted
-		expect(callback).toHaveBeenCalledWith({ anonymous: 1 });
+		expect(callback).toHaveBeenCalledWith({ "[anonymous]": 1 });
 	});
 
 	it("ignoreIntrospection: all skips subtree even with ignoreMode: exclude", () => {
@@ -362,6 +362,89 @@ describe("depthLimit with ignoreMode: exclude", () => {
 		validate(schema, query, [
 			depthLimit(0, { ignoreIntrospection: "all", ignoreMode: "exclude" }, callback),
 		]);
-		expect(callback).toHaveBeenCalledWith({ anonymous: 0 });
+		expect(callback).toHaveBeenCalledWith({ "[anonymous]": 0 });
+	});
+});
+
+// ---------------------------------------------------------------------------
+// ReDoS (catastrophic backtracking) detection
+// ---------------------------------------------------------------------------
+
+describe("ReDoS detection", () => {
+	describe("rejects unsafe RegExp patterns at setup time", () => {
+		it("rejects nested quantifier: (a+)+", () => {
+			expect(() => depthLimit(5, { ignore: [/(a+)+$/] })).toThrow(TypeError);
+			expect(() => depthLimit(5, { ignore: [/(a+)+$/] })).toThrow(/nested quantifier/);
+		});
+
+		it("rejects nested quantifier: (a+)*", () => {
+			expect(() => depthLimit(5, { ignore: [/(a+)*$/] })).toThrow(/nested quantifier/);
+		});
+
+		it("rejects nested quantifier: (a*)+", () => {
+			expect(() => depthLimit(5, { ignore: [/(a*)+$/] })).toThrow(/nested quantifier/);
+		});
+
+		it("rejects nested quantifier: (a*)*", () => {
+			expect(() => depthLimit(5, { ignore: [/(a*)*$/] })).toThrow(/nested quantifier/);
+		});
+
+		it("rejects nested quantifier: (\\w+)+", () => {
+			expect(() => depthLimit(5, { ignore: [/(\w+)+/] })).toThrow(/nested quantifier/);
+		});
+
+		it("rejects nested quantifier: (a{2,})+", () => {
+			expect(() => depthLimit(5, { ignore: [/(a{2,})+/] })).toThrow(/nested quantifier/);
+		});
+
+		it("rejects nested quantifier: (a{2,4})+", () => {
+			expect(() => depthLimit(5, { ignore: [/(a{2,4})+/] })).toThrow(/nested quantifier/);
+		});
+
+		it("rejects deeply nested quantifier: ((a+)+)+", () => {
+			expect(() => depthLimit(5, { ignore: [/((a+)+)+/] })).toThrow(/nested quantifier/);
+		});
+
+		it("includes pattern in error message", () => {
+			expect(() => depthLimit(5, { ignore: [/(a+)+$/] })).toThrow("/(a+)+$/");
+		});
+	});
+
+	describe("accepts safe RegExp patterns", () => {
+		it("accepts simple prefix: /^internal/", () => {
+			expect(() => depthLimit(5, { ignore: [/^internal/] })).not.toThrow();
+		});
+
+		it("accepts suffix wildcard: /.*Connection$/", () => {
+			expect(() => depthLimit(5, { ignore: [/.*Connection$/] })).not.toThrow();
+		});
+
+		it("accepts double underscore: /^__/", () => {
+			expect(() => depthLimit(5, { ignore: [/^__/] })).not.toThrow();
+		});
+
+		it("accepts alternation without quantifier: /foo|bar/", () => {
+			expect(() => depthLimit(5, { ignore: [/foo|bar/] })).not.toThrow();
+		});
+
+		it("accepts character class with quantifier: /[a-z]+/", () => {
+			expect(() => depthLimit(5, { ignore: [/[a-z]+/] })).not.toThrow();
+		});
+
+		it("accepts non-capturing group without nested quantifier: /(?:foo)+/", () => {
+			expect(() => depthLimit(5, { ignore: [/(?:foo)+/] })).not.toThrow();
+		});
+
+		it("accepts {1} brace quantifier (no repetition): /(a{1})/", () => {
+			expect(() => depthLimit(5, { ignore: [/(a{1})+/] })).not.toThrow();
+		});
+
+		it("accepts global flag: /test/g", () => {
+			expect(() => depthLimit(5, { ignore: [/test/g] })).not.toThrow();
+		});
+
+		it("accepts case-insensitive flag: /test/i", () => {
+			expect(() => depthLimit(5, { ignore: [/test/i] })).not.toThrow();
+		});
 	});
 });

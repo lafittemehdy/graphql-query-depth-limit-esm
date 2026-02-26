@@ -1,15 +1,12 @@
 /**
  * GraphQL Yoga example with graphql-query-depth-limit-esm.
  *
- * Run:
- *   pnpm build && npx tsx examples/servers/yoga-server.ts
- *
- * Then open http://localhost:4000/graphql in your browser to use GraphiQL.
+ * Run:  pnpm example:yoga
  */
 
 import { createServer } from "node:http";
 import { createSchema, createYoga } from "graphql-yoga";
-import { depthLimit } from "../../dist/index.js";
+import { depthLimit } from "../../src/index.js";
 import { printBanner, resolvers, typeDefs } from "./schema.js";
 
 const yoga = createYoga({
@@ -27,9 +24,9 @@ const yoga = createYoga({
 	schema: createSchema({ resolvers, typeDefs }),
 });
 
-const server = createServer(yoga);
 const PORT = 4000;
-
+const server = createServer(yoga);
 server.listen(PORT, () => {
-	printBanner(`http://localhost:${PORT}/graphql`);
+	printBanner(PORT);
+	console.log("GraphQL Yoga ready");
 });

@@ -1,9 +1,10 @@
 {
 	"name": "graphql-query-depth-limit-esm",
-	"version": "2.0.1",
+	"version": "2.0.2",
 	"description": "GraphQL query depth limiting validation rule with directive support, ignore rules, and fragment cycle detection",
 	"author": "Lafitte Mehdy",
 	"license": "MIT",
+	"packageManager": "pnpm@10.18.3",
 	"type": "module",
 	"exports": {
 		".": {
@@ -22,7 +23,7 @@
 		"README.md"
 	],
 	"engines": {
-		"node": ">=20.0.0"
+		"node": ">=22.0.0"
 	},
 	"keywords": [
 		"depth-limit",
@@ -46,7 +47,7 @@
 		"provenance": true
 	},
 	"peerDependencies": {
-		"graphql": "^16.0.0"
+		"graphql": "^16.0.0 || ^17.0.0"
 	},
 	"devDependencies": {
 		"@apollo/server": "^5.4.0",
@@ -56,6 +57,7 @@
 		"@vitest/ui": "^4.0.18",
 		"graphql": "^16.12.0",
 		"graphql-yoga": "^5.18.0",
+		"husky": "^9.1.7",
 		"tsup": "^8.5.1",
 		"tsx": "^4.21.0",
 		"typescript": "^5.9.3",
@@ -63,11 +65,13 @@
 	},
 	"scripts": {
 		"build": "tsup",
+		"check:workflow": "node scripts/check-pnpm-setup.mjs",
 		"dev": "tsc --watch",
 		"example:apollo": "tsx examples/servers/apollo-server.ts",
 		"example:yoga": "tsx examples/servers/yoga-server.ts",
-		"lint": "biome check && tsc --noEmit",
+		"lint": "biome check && tsc --noEmit && pnpm run check:workflow",
 		"lint:fix": "biome check --write && tsc --noEmit",
+		"prepare": "husky",
 		"prepublishOnly": "pnpm run lint && pnpm run build && pnpm test",
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage",

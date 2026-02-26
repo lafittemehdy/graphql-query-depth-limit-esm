@@ -149,6 +149,22 @@ describe("depthLimit", () => {
 				}),
 			).not.toThrow();
 		});
+
+		it("rejects unsafe RegExp ignore rules at setup time", () => {
+			expect(() => depthLimit(5, { ignore: [/(a+)+$/] })).toThrow(TypeError);
+			expect(() => depthLimit(5, { ignore: [/(a+)+$/] })).toThrow(/Unsafe RegExp/);
+			expect(() => depthLimit(5, { ignore: [/(a+)+$/] })).toThrow(/nested quantifier/);
+		});
+
+		it("accepts safe RegExp ignore rules", () => {
+			expect(() => depthLimit(5, { ignore: [/^internal/, /.*Connection$/] })).not.toThrow();
+		});
+
+		it("validates RegExp rules alongside string rules", () => {
+			expect(() => depthLimit(5, { ignore: ["metadata", /(a+)+$/] })).toThrow(
+				/Unsafe RegExp.*index 1/,
+			);
+		});
 	});
 
 	describe("basic depth limiting", () => {
@@ -286,14 +302,14 @@ describe("depthLimit", () => {
 			const callback = vi.fn();
 			const query = parse("{ user { name } }");
 			validate(schema, query, [depthLimit(10, callback)]);
-			expect(callback).toHaveBeenCalledWith({ anonymous: 1 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 1 });
 		});
 
 		it("passes a plain object to callback for compatibility", () => {
 			const callback = vi.fn((depths: Record<string, number>) => {
 				expect(Object.getPrototypeOf(depths)).toBe(Object.prototype);
 				expect("hasOwnProperty" in depths).toBe(true);
-				expect(Object.hasOwn(depths, "anonymous")).toBe(true);
+				expect(Object.hasOwn(depths, "[anonymous]")).toBe(true);
 			});
 			const query = parse("{ user { name } }");
 			validate(schema, query, [depthLimit(10, callback)]);
@@ -311,11 +327,11 @@ describe("depthLimit", () => {
 			expect(callback).toHaveBeenCalledWith({ GetUser: 1, ListUsers: 2 });
 		});
 
-		it("uses 'anonymous' for unnamed operations", () => {
+		it("uses '[anonymous]' for unnamed operations", () => {
 			const callback = vi.fn();
 			const query = parse("{ user { name } }");
 			validate(schema, query, [depthLimit(10, undefined, callback)]);
-			expect(callback).toHaveBeenCalledWith({ anonymous: 1 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 1 });
 		});
 
 		it("invokes callback even when violations occur", () => {
@@ -331,7 +347,7 @@ describe("depthLimit", () => {
 			const query = parse("{ user { friends { friends { name } } } }");
 			validate(schema, query, [depthLimit(1, undefined, callback)]);
 			expect(callback).toHaveBeenCalledOnce();
-			expect(callback).toHaveBeenCalledWith({ anonymous: 3 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 3 });
 		});
 	});
 
@@ -445,7 +461,7 @@ describe("depthLimit", () => {
 			const query = parse("{ __schema { types { name } } }");
 			const callback = vi.fn();
 			validate(schema, query, [depthLimit(0, { ignoreIntrospection: "all" }, callback)]);
-			expect(callback).toHaveBeenCalledWith({ anonymous: 0 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 0 });
 		});
 
 		it("does not ignore __typename when ignoreIntrospection is 'none'", () => {
@@ -533,7 +549,7 @@ describe("depthLimit", () => {
 			const callback = vi.fn();
 
 			validate(schema, query, [depthLimit(2, undefined, callback)]);
-			expect(callback).toHaveBeenCalledWith({ anonymous: 21 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 21 });
 		});
 	});
 
@@ -586,7 +602,7 @@ describe("depthLimit", () => {
 			expect(errors).toHaveLength(1);
 			expect(errors[0]?.extensions?.shortCircuit).toBe(false);
 			expect(errors[0]?.extensions?.depth).toBe(3);
-			expect(callback).toHaveBeenCalledWith({ anonymous: 3 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 3 });
 		});
 
 		it("auto-detects shortCircuit: true when no callback", () => {
@@ -661,7 +677,7 @@ describe("depthLimit", () => {
 				path: ["user", "friends", "friends", "friends"],
 				shortCircuit: false,
 			});
-			expect(callback).toHaveBeenCalledWith({ anonymous: 5 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 5 });
 		});
 	});
 
@@ -727,7 +743,7 @@ describe("depthLimit", () => {
 			rule(context);
 
 			expect(callback).toHaveBeenCalledOnce();
-			expect(callback).toHaveBeenCalledWith({ anonymous: 1, anonymous_1: 2 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 1, "[anonymous:2]": 2 });
 		});
 	});
 
@@ -1179,7 +1195,7 @@ describe("depthLimit", () => {
 			const callback = vi.fn();
 			validate(unionSchema, query, [depthLimit(10, undefined, callback)]);
 			// pet(1) -> puppies(2) -> puppies(3) -> name = 3
-			expect(callback).toHaveBeenCalledWith({ anonymous: 3 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 3 });
 		});
 
 		it("rejects deep queries through union types", () => {
@@ -1241,7 +1257,7 @@ describe("depthLimit", () => {
 
 			const errors = validate(schema, query, [depthLimit(5, undefined, callback)]);
 			expect(errors).toHaveLength(1);
-			expect(callback).toHaveBeenCalledWith({ anonymous: 1_001 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 1_001 });
 		});
 	});
 
@@ -1657,7 +1673,7 @@ describe("depthLimit", () => {
 	});
 
 	describe("anonymous operation name collision", () => {
-		it("avoids collision when a named operation is called 'anonymous'", () => {
+		it("keeps named operation separate from anonymous operations", () => {
 			const callback = vi.fn();
 			const query = parse(`
 					query anonymous { user { name } }
@@ -1670,15 +1686,10 @@ describe("depthLimit", () => {
 
 			expect(callback).toHaveBeenCalledOnce();
 			const depths = callback.mock.calls[0]?.[0] as Record<string, number>;
-			// Named "anonymous" should keep its name, unnamed should get a different key
+			// Named "anonymous" keeps its name; unnamed gets "[anonymous]"
 			expect(depths).toHaveProperty("anonymous", 1);
+			expect(depths).toHaveProperty("[anonymous]", 2);
 			expect(Object.keys(depths)).toHaveLength(2);
-			// The unnamed operation should NOT overwrite the named one
-			const unnamedKey = Object.keys(depths).find((k) => k !== "anonymous");
-			expect(unnamedKey).toBeDefined();
-			if (unnamedKey) {
-				expect(depths[unnamedKey]).toBe(2);
-			}
 		});
 
 		it("assigns unique callback keys for duplicate named operations", () => {
@@ -1774,7 +1785,7 @@ describe("depthLimit", () => {
 				depthLimit(10, { ignore: ["friends"], ignoreMode: "exclude" }, callback),
 			]);
 			// Without guard: friends never increments depth, effective depth = 1 (user)
-			expect(callback).toHaveBeenCalledWith({ anonymous: 1 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 1 });
 		});
 
 		it("increments depth for repeated ignored fields when enabled", () => {
@@ -1789,7 +1800,7 @@ describe("depthLimit", () => {
 			]);
 			// With guard: first friends(ignored, no increment=1), second friends(repeated, increment=2),
 			// third friends(repeated, increment=3)
-			expect(callback).toHaveBeenCalledWith({ anonymous: 3 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 3 });
 		});
 
 		it("enforces depth limit on repeated ignored fields", () => {
@@ -1812,7 +1823,7 @@ describe("depthLimit", () => {
 				),
 			]);
 			// skip mode removes entire subtree; limitIgnoredRecursion irrelevant
-			expect(callback).toHaveBeenCalledWith({ anonymous: 1 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 1 });
 		});
 
 		it("tracks ignored fields independently per path", () => {
@@ -1832,7 +1843,7 @@ describe("depthLimit", () => {
 			]);
 			// Path 1: user(1) → friends(ignored,1) → friends(repeated,2) → name = 2
 			// Path 2: user(1) → address(2) → city = 2
-			expect(callback).toHaveBeenCalledWith({ anonymous: 2 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 2 });
 		});
 
 		it("uses field-name-only keys when no schema is available (conservative)", () => {
@@ -1852,7 +1863,7 @@ describe("depthLimit", () => {
 
 			// Without schema: key is just "friends" (no type prefix)
 			// user(1) → friends(ignored, 1) → friends(repeated, 2) → friends(repeated, 3) → name = 3
-			expect(callback).toHaveBeenCalledWith({ anonymous: 3 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 3 });
 		});
 
 		it("does not false-positive when unrelated types share the same field name", () => {
@@ -1884,7 +1895,7 @@ describe("depthLimit", () => {
 			// ignored, no increment=1) → value = 1
 			// Type-aware guard: "A:items" and "B:items" are different keys, so both are
 			// first occurrences and neither increments depth.
-			expect(callback).toHaveBeenCalledWith({ anonymous: 1 });
+			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 1 });
 		});
 	});
 

@@ -17,9 +17,7 @@ import { type GraphQLField, Kind } from "graphql";
  * });
  * ```
  */
-export const depthDirectiveTypeDefs = `
-  directive @depth(max: Int!) on FIELD_DEFINITION
-`;
+export const depthDirectiveTypeDefs = /* GraphQL */ `directive @depth(max: Int!) on FIELD_DEFINITION`;
 
 /**
  * Extracts the maximum depth from a `@depth(max: Int!)` directive on a field definition.

@@ -4,7 +4,7 @@
  * Used by both `apollo-server.ts` and `yoga-server.ts`.
  */
 
-import { depthDirectiveTypeDefs } from "../../dist/index.js";
+import { depthDirectiveTypeDefs } from "../../src/index.js";
 
 // ---------------------------------------------------------------------------
 // Type definitions
@@ -116,23 +116,19 @@ export const resolvers = {
 };
 
 // ---------------------------------------------------------------------------
-// Startup banner
+// Banner
 // ---------------------------------------------------------------------------
 
 /** Prints server configuration summary and example queries to the console. */
-export function printBanner(url: string): void {
+export function printBanner(port: number): void {
 	console.log(`
-Server running at: ${url}
-
-Configuration:
-  Global depth limit: 7
-  Directive overrides: enabled
-  Callback logging: enabled
-
-Field-specific limits (@depth directive):
-  User.friends     -> max 3 levels
-  Post.comments    -> max 5 levels
-  Comment.replies  -> max 4 levels
+┌─────────────────────────────────────────────┐
+│  graphql-query-depth-limit-esm  —  Example  │
+├─────────────────────────────────────────────┤
+│  Server:   http://localhost:${port}/graphql    │
+│  Max:      7 depth                          │
+│  Engine:   iterative (stack-based DFS)      │
+└─────────────────────────────────────────────┘
 
 Try these queries:
 

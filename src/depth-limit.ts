@@ -13,6 +13,7 @@ import {
 	extractDefinitions,
 	type TraversalConfig,
 } from "./depth-engine.js";
+import { isUnsafeRegExp } from "./ignore.js";
 import type { DepthCallback, DepthLimitFunction, DepthLimitOptions, IgnoreRule } from "./types.js";
 
 /** Valid values for the `directiveMode` option. */
@@ -320,6 +321,15 @@ function normalizeIgnoreRules(ignore: DepthLimitOptions["ignore"]): IgnoreRule[]
 				`Invalid ignore rule at index ${index}: expected string, RegExp, or function, received ${receivedType}.`,
 			);
 		}
+
+		if (rule instanceof RegExp) {
+			const reason = isUnsafeRegExp(rule);
+			if (reason) {
+				throw new TypeError(
+					`Unsafe RegExp ignore rule at index ${index}: /${rule.source}/${rule.flags} — ${reason}. Use a simpler pattern to avoid catastrophic backtracking.`,
+				);
+			}
+		}
 	}
 
 	return rules as IgnoreRule[];
@@ -370,14 +380,13 @@ function createOperationNameAllocator(
 			return candidate;
 		}
 
-		let suffix = anonymousCount;
-		let candidate = suffix === 0 ? "anonymous" : `anonymous_${suffix}`;
+		anonymousCount++;
+		let candidate = anonymousCount === 1 ? "[anonymous]" : `[anonymous:${anonymousCount}]`;
 		while (usedNames.has(candidate) || explicitNames.has(candidate)) {
-			suffix++;
-			candidate = `anonymous_${suffix}`;
+			anonymousCount++;
+			candidate = `[anonymous:${anonymousCount}]`;
 		}
 
-		anonymousCount = suffix + 1;
 		usedNames.add(candidate);
 		return candidate;
 	};
