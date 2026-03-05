@@ -1,5 +1,5 @@
 {
-  "name": "graphql-query-depth-limit-visualization",
+  "name": "graphql-query-depth-limit-esm-visualization",
   "private": true,
   "type": "module",
   "scripts": {

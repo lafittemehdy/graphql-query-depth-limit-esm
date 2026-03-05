@@ -123,7 +123,7 @@ export const resolvers = {
 export function printBanner(port: number): void {
 	console.log(`
 ┌─────────────────────────────────────────────┐
-│  graphql-query-depth-limit-esm  —  Example  │
+│  graphql-query-depth-limit-esm  —  Example         │
 ├─────────────────────────────────────────────┤
 │  Server:   http://localhost:${port}/graphql    │
 │  Max:      7 depth                          │

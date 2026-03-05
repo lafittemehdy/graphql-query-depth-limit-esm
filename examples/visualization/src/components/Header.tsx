@@ -1,47 +1,49 @@
 /**
- * Header bar — title link, npm install snippet with copy, compare toggle.
+ * Header bar — package title, npm install snippet, replay button.
  *
  * @module Header
  */
 
 import { useCallback, useState } from "react";
 
+import { COPY_FEEDBACK_MS } from "../lib/utils";
+
 const INSTALL_CMD = "npm i graphql-query-depth-limit-esm";
+const REPO_URL = "https://github.com/lafittemehdy/graphql-query-depth-limit-esm";
 
 interface HeaderProps {
-  compareActive: boolean;
-  onCompareToggle: () => void;
+  onReplay?: () => void;
 }
 
-/** Compact header with title, install snippet, and compare toggle. */
-export function Header({ compareActive, onCompareToggle }: HeaderProps) {
+/** Compact header with title, install snippet, and replay trigger. */
+export function Header({ onReplay }: HeaderProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(INSTALL_CMD).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
-    });
+    navigator.clipboard.writeText(INSTALL_CMD).then(
+      () => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);
+      },
+      () => {
+        /* clipboard unavailable — fail silently in non-secure contexts */
+      },
+    );
   }, []);
 
   return (
     <header className="header">
       <div className="header-left">
-        <a
-          className="header-title"
-          href="https://github.com/lafittemehdy/graphql-query-depth-limit-esm"
-          rel="noopener noreferrer"
-          target="_blank"
-        >
-          graphql-query-depth-limit-esm
+        <a className="header-title" href={REPO_URL} rel="noopener noreferrer" target="_blank">
+          GraphQL Depth Limit
         </a>
 
         <span className="header-install">
           <span>{INSTALL_CMD}</span>
           <button
+            aria-label={copied ? "Copied!" : "Copy install command"}
             className="header-install-copy"
             onClick={handleCopy}
-            title="Copy to clipboard"
             type="button"
           >
             {copied ? (
@@ -79,14 +81,19 @@ export function Header({ compareActive, onCompareToggle }: HeaderProps) {
       </div>
 
       <div className="header-right">
-        <button
-          className={`header-btn${compareActive ? " active" : ""}`}
-          onClick={onCompareToggle}
-          title="Toggle comparison mode (C)"
-          type="button"
-        >
-          Compare
-        </button>
+        {onReplay && (
+          <button
+            aria-label="Replay intro animation"
+            className="header-action-btn"
+            onClick={onReplay}
+            type="button"
+          >
+            <svg aria-hidden="true" fill="currentColor" height="10" viewBox="0 0 24 24" width="10">
+              <polygon points="5,3 19,12 5,21" />
+            </svg>
+            play
+          </button>
+        )}
       </div>
     </header>
   );

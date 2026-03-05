@@ -6,12 +6,10 @@
 [![npm version](https://img.shields.io/npm/v/graphql-query-depth-limit-esm?logo=npm)](https://www.npmjs.com/package/graphql-query-depth-limit-esm)
 [![npm downloads](https://img.shields.io/npm/dm/graphql-query-depth-limit-esm?logo=npm)](https://www.npmjs.com/package/graphql-query-depth-limit-esm)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node >=22](https://img.shields.io/badge/node-%3E%3D22-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Provenance](https://img.shields.io/badge/provenance-verified-brightgreen?logo=npm)](https://www.npmjs.com/package/graphql-query-depth-limit-esm)
 
 Production-ready GraphQL query depth limiting as a validation rule. Prevents denial-of-service attacks from deeply nested queries by enforcing a configurable maximum depth.
-
-**[Interactive demo](https://lafittemehdy.github.io/graphql-query-depth-limit-esm/)** — see depth analysis in action with preset queries, an AST tree viewer, and a depth gauge.
 
 ## Interactive Demo
 
@@ -23,7 +21,7 @@ npm install
 npm run dev
 ```
 
-Includes preset queries (simple lookups through deeply nested attacks), an AST tree viewer with depth badges, and a depth gauge with pass/fail verdict.
+Preset queries (simple lookups through deeply nested attacks), an AST tree viewer with depth badges, and a depth gauge with pass/fail verdict.
 
 ## Features
 
@@ -493,6 +491,21 @@ query {
 }
 # Maximum depth: 3
 ```
+
+## Performance
+
+The depth engine uses **iterative DFS** (not recursion) to prevent stack overflow on adversarial queries and to keep traversal overhead constant regardless of nesting depth.
+
+| Characteristic | Detail |
+|---|---|
+| **Algorithm** | Iterative depth-first search with explicit stack |
+| **Time complexity** | O(n) where n = total selection nodes in the query |
+| **Short-circuit** | Stops on first violation when no callback is provided |
+| **Fragment cycles** | Detected per-path with minimal Set allocations |
+| **Stack safety** | No recursion — immune to stack overflow on deep queries |
+| **Runtime dependencies** | Zero — only `graphql` as a peer dependency |
+
+Typical validation completes in **sub-millisecond** time for standard queries (< 50 fields). Even adversarial queries with hundreds of nested selections are analyzed in **single-digit milliseconds** thanks to early termination and per-path fragment cycle detection.
 
 ## Migrating from v1 to v2
 

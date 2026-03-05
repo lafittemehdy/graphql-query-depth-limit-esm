@@ -3,45 +3,40 @@
  *
  * Layout: Header → (OptionsPanel + PresetBar + CodeEditor) | TreeView | ResultPanel
  *
- * Supports A/B comparison mode where two independent query+options
- * slots can be toggled and their results compared side by side.
+ * First-visit animation ("The Descent") plays directly in the live UI:
+ * tree levels are dimmed, then light up one by one from top to bottom
+ * as the depth gauge fills, exceeded nodes glow red, then a beat
+ * of silence before the BLOCKED verdict shakes in.
  *
  * @module App
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { CodeEditor } from "./components/CodeEditor";
-import { CompareTabs } from "./components/CompareTabs";
 import { Header } from "./components/Header";
 import { OptionsPanel } from "./components/OptionsPanel";
 import { PresetBar } from "./components/PresetBar";
 import { ResultPanel } from "./components/ResultPanel";
 import { TreeView } from "./components/TreeView";
+import { WelcomePrompt } from "./components/WelcomePrompt";
 import { useAnalysis } from "./hooks/useAnalysis";
 import { DEFAULT_PRESET_ID, PRESET_ORDER, PRESETS } from "./lib/presets";
-import { isTextInput } from "./lib/utils";
-import type { AnalysisResult, DepthOptions } from "./types/analysis";
+import { isIntroDisabled, isTextInput } from "./lib/utils";
+import type { DepthOptions } from "./types/analysis";
 
 // ---------------------------------------------------------------------------
 // Defaults
 // ---------------------------------------------------------------------------
 
+const ATTACK_PRESET = PRESETS.find((p) => p.id === "attack")!;
 const DEFAULT_PRESET = PRESETS.find((p) => p.id === DEFAULT_PRESET_ID)!;
-const SECONDARY_PRESET = PRESETS.find((p) => p.id === "attack")!;
+
+const REDUCED_MOTION =
+  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 function cloneOptions(opts: DepthOptions): DepthOptions {
   return { ...opts, ignore: [...opts.ignore] };
-}
-
-// ---------------------------------------------------------------------------
-// Slot state for comparison mode
-// ---------------------------------------------------------------------------
-
-interface Slot {
-  options: DepthOptions;
-  query: string;
-  result: AnalysisResult | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -52,32 +47,163 @@ interface Slot {
 export function App() {
   // --- Core state ---
   const [activePresetId, setActivePresetId] = useState<string | null>(DEFAULT_PRESET_ID);
-  const [activeSlot, setActiveSlot] = useState<"A" | "B">("A");
-  const [compareMode, setCompareMode] = useState(false);
   const [mobileResultOpen, setMobileResultOpen] = useState(false);
   const [options, setOptions] = useState<DepthOptions>(cloneOptions(DEFAULT_PRESET.options));
   const [queryText, setQueryText] = useState(DEFAULT_PRESET.query);
+  const [showWelcome, setShowWelcome] = useState(!isIntroDisabled());
 
-  // --- Slot storage for comparison mode ---
-  const [slots, setSlots] = useState<Record<"A" | "B", Slot>>({
-    A: { options: cloneOptions(DEFAULT_PRESET.options), query: DEFAULT_PRESET.query, result: null },
-    B: {
-      options: cloneOptions(SECONDARY_PRESET.options),
-      query: SECONDARY_PRESET.query,
-      result: null,
-    },
-  });
+  // --- Animation state ---
+  const [badgeVisible, setBadgeVisible] = useState(true);
+  const [depthOverride, setDepthOverride] = useState<number | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [revealDepth, setRevealDepth] = useState<number | null>(null);
+  const [shaking, setShaking] = useState(false);
+
+  const animCancelsRef = useRef<(() => void)[]>([]);
+  const skippedRef = useRef(false);
 
   // --- Analysis ---
   const analysisResult = useAnalysis(queryText, options);
 
-  // Store analysis result back into the active slot
+  // --- Finish / skip helpers ---
+
+  const finishAnimation = useCallback(() => {
+    for (const cancel of animCancelsRef.current) cancel();
+    animCancelsRef.current = [];
+
+    setBadgeVisible(true);
+    setDepthOverride(null);
+    setIsAnimating(false);
+    setRevealDepth(null);
+    setShaking(false);
+  }, []);
+
+  const skipAnimation = useCallback(() => {
+    if (!isAnimating || skippedRef.current) return;
+    skippedRef.current = true;
+    finishAnimation();
+  }, [isAnimating, finishAnimation]);
+
+  // --- The Descent: animation sequence ---
+
   useEffect(() => {
-    setSlots((prev) => ({
-      ...prev,
-      [activeSlot]: { ...prev[activeSlot], result: analysisResult },
-    }));
-  }, [activeSlot, analysisResult]);
+    if (!isAnimating) return;
+    skippedRef.current = false;
+
+    const cancels: (() => void)[] = [];
+    animCancelsRef.current = cancels;
+
+    /** Schedule a callback after `ms` (cancellable). */
+    function after(ms: number, fn: () => void): void {
+      const t = setTimeout(() => {
+        if (!skippedRef.current) fn();
+      }, ms);
+      cancels.push(() => clearTimeout(t));
+    }
+
+    // Reduced motion: show final state instantly
+    if (REDUCED_MOTION) {
+      after(300, finishAnimation);
+      return;
+    }
+
+    // Wait for analysis result before animating
+    if (!analysisResult?.tree) return;
+
+    // Compute max depth in the tree for reveal steps
+    const maxTreeDepth = analysisResult.depth;
+
+    // Phase 0: Cold Open — everything dimmed, gauge at 0
+    setRevealDepth(-1);
+    setDepthOverride(0);
+    setBadgeVisible(false);
+
+    let elapsed = 500; // 500ms of stillness
+
+    // Phase 1: The Descent — reveal tree levels one by one
+    for (let level = 0; level <= maxTreeDepth; level++) {
+      const levelTime = elapsed;
+      after(levelTime, () => {
+        setRevealDepth(level);
+        setDepthOverride(Math.min(level, maxTreeDepth));
+      });
+      elapsed += 350;
+    }
+
+    // Phase 2: The Silence — full tree visible, gauge holds
+    after(elapsed, () => {
+      setRevealDepth(null);
+    });
+    elapsed += 600;
+
+    // Phase 3: The Verdict — BLOCKED + shake
+    after(elapsed, () => {
+      setBadgeVisible(true);
+      setDepthOverride(null);
+      setShaking(true);
+    });
+    elapsed += 300;
+
+    after(elapsed, () => {
+      setShaking(false);
+    });
+    elapsed += 400;
+
+    // Phase 4: Done — transition to playground
+    after(elapsed, finishAnimation);
+
+    return () => {
+      for (const c of cancels) c();
+    };
+  }, [isAnimating, analysisResult, finishAnimation]);
+
+  // --- Skip animation on any click or keypress ---
+
+  useEffect(() => {
+    if (!isAnimating) return;
+
+    const handler = () => skipAnimation();
+
+    // Small delay so the initial click/key doesn't immediately skip
+    const t = setTimeout(() => {
+      document.addEventListener("click", handler);
+      document.addEventListener("keydown", handler);
+    }, 200);
+
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("click", handler);
+      document.removeEventListener("keydown", handler);
+    };
+  }, [isAnimating, skipAnimation]);
+
+  // --- Welcome prompt handlers ---
+
+  /** Load the attack preset and start the intro animation. */
+  const startAnimation = useCallback(() => {
+    setActivePresetId("attack");
+    setOptions(cloneOptions(ATTACK_PRESET.options));
+    setQueryText(ATTACK_PRESET.query);
+    setBadgeVisible(false);
+    setDepthOverride(0);
+    setIsAnimating(true);
+    setRevealDepth(-1);
+    setShaking(false);
+  }, []);
+
+  const handleWelcomePlay = useCallback(() => {
+    setShowWelcome(false);
+    startAnimation();
+  }, [startAnimation]);
+
+  const handleWelcomeSkip = useCallback(() => {
+    setShowWelcome(false);
+  }, []);
+
+  const handleReplay = useCallback(() => {
+    if (isAnimating) return;
+    startAnimation();
+  }, [isAnimating, startAnimation]);
 
   // --- Handlers ---
 
@@ -98,43 +224,6 @@ export function App() {
     setOptions(newOptions);
   }, []);
 
-  const handleCompareToggle = useCallback(() => {
-    setCompareMode((prev) => {
-      if (prev) {
-        // Exiting compare: restore slot A
-        setActiveSlot("A");
-        setOptions(cloneOptions(slots.A.options));
-        setQueryText(slots.A.query);
-      } else {
-        // Entering compare: save current state to slot A
-        setSlots((s) => ({
-          ...s,
-          A: { ...s.A, options: cloneOptions(options), query: queryText },
-        }));
-      }
-      return !prev;
-    });
-  }, [options, queryText, slots.A]);
-
-  const handleSlotChange = useCallback(
-    (slot: "A" | "B") => {
-      if (slot === activeSlot) return;
-
-      // Save current slot
-      setSlots((prev) => ({
-        ...prev,
-        [activeSlot]: { ...prev[activeSlot], options: cloneOptions(options), query: queryText },
-      }));
-
-      // Load target slot
-      setActiveSlot(slot);
-      setOptions(cloneOptions(slots[slot].options));
-      setQueryText(slots[slot].query);
-      setActivePresetId(null);
-    },
-    [activeSlot, options, queryText, slots],
-  );
-
   const handleMobileClose = useCallback(() => {
     setMobileResultOpen(false);
   }, []);
@@ -146,9 +235,6 @@ export function App() {
       if (isTextInput(e.target)) return;
 
       switch (e.key.toLowerCase()) {
-        case "c":
-          if (!e.ctrlKey && !e.metaKey) handleCompareToggle();
-          break;
         case "1":
         case "2":
         case "3":
@@ -165,7 +251,7 @@ export function App() {
 
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [handleCompareToggle, handlePresetSelect]);
+  }, [handlePresetSelect]);
 
   // --- Mobile result dot class ---
 
@@ -177,9 +263,10 @@ export function App() {
 
   return (
     <>
-      <Header compareActive={compareMode} onCompareToggle={handleCompareToggle} />
+      {showWelcome && <WelcomePrompt onPlay={handleWelcomePlay} onSkip={handleWelcomeSkip} />}
+      <Header onReplay={handleReplay} />
 
-      <div className="playground-layout">
+      <div className={`playground-layout${isAnimating ? " animating" : ""}`}>
         {/* Left Panel: Options + Editor */}
         <aside className="left-panel">
           <section className="left-section">
@@ -192,13 +279,6 @@ export function App() {
           <section className="left-section editor-section">
             <div className="section-header">
               <span className="section-title">Query</span>
-              {compareMode && (
-                <CompareTabs
-                  activeSlot={activeSlot}
-                  onSlotChange={handleSlotChange}
-                  slots={slots}
-                />
-              )}
             </div>
             <PresetBar activePresetId={activePresetId} onSelect={handlePresetSelect} />
             <CodeEditor onChange={handleQueryChange} queryText={queryText} />
@@ -206,14 +286,21 @@ export function App() {
         </aside>
 
         {/* Center: AST Tree Visualization */}
-        <TreeView maxDepth={options.maxDepth} result={analysisResult} />
+        <TreeView
+          maxDepth={options.maxDepth}
+          result={analysisResult}
+          revealDepth={isAnimating ? revealDepth : undefined}
+        />
 
         {/* Right: Result Panel */}
         <ResultPanel
+          badgeVisible={badgeVisible}
+          depthOverride={isAnimating ? depthOverride : undefined}
           onClose={handleMobileClose}
           open={mobileResultOpen}
           options={options}
           result={analysisResult}
+          shaking={shaking}
         />
       </div>
 

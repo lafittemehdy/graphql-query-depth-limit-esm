@@ -1,11 +1,16 @@
 /**
  * DOM-based AST tree visualization with depth badges and expand/collapse.
  *
+ * Supports a `revealDepth` prop for the intro animation: nodes deeper
+ * than the reveal threshold are dimmed, creating a progressive
+ * "descent" effect as levels light up one by one.
+ *
  * @module TreeView
  */
 
 import { memo, useCallback, useState } from "react";
-import { depthBadgeClass, escapeHtml } from "../lib/utils";
+
+import { depthBadgeClass } from "../lib/utils";
 import type { AnalysisResult, TreeNode } from "../types/analysis";
 
 // ---------------------------------------------------------------------------
@@ -15,6 +20,8 @@ import type { AnalysisResult, TreeNode } from "../types/analysis";
 interface TreeViewProps {
   maxDepth: number;
   result: AnalysisResult | null;
+  /** When set, nodes deeper than this value are dimmed (animation mode). */
+  revealDepth?: number | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -22,13 +29,15 @@ interface TreeViewProps {
 // ---------------------------------------------------------------------------
 
 /** Tree viewport showing parsed AST operations as an interactive nested tree. */
-export function TreeView({ maxDepth, result }: TreeViewProps) {
+export function TreeView({ maxDepth, result, revealDepth }: TreeViewProps) {
   if (!result || !result.tree || result.tree.length === 0) {
     const isError = result?.error && !result.tree;
     return (
       <main className="tree-viewport">
         <div className="tree-empty">
-          <div className="tree-empty-icon">&#9651;</div>
+          <div aria-hidden="true" className="tree-empty-icon">
+            &#9651;
+          </div>
           <div className="tree-empty-title">
             {isError ? "Parse Error" : "Query Depth Visualizer"}
           </div>
@@ -44,9 +53,14 @@ export function TreeView({ maxDepth, result }: TreeViewProps) {
 
   return (
     <main className="tree-viewport">
-      <div className="tree-container">
+      <div className="tree-container" role="tree">
         {result.tree.map((root, i) => (
-          <TreeNodeView key={`${root.fieldName}-${i}`} maxDepth={maxDepth} node={root} />
+          <TreeNodeView
+            key={`${root.fieldName}-${i}`}
+            maxDepth={maxDepth}
+            node={root}
+            revealDepth={revealDepth}
+          />
         ))}
       </div>
     </main>
@@ -60,12 +74,19 @@ export function TreeView({ maxDepth, result }: TreeViewProps) {
 interface TreeNodeViewProps {
   maxDepth: number;
   node: TreeNode;
+  /** When set, nodes deeper than this value are dimmed. */
+  revealDepth?: number | null;
 }
 
 /** Single tree node with expand/collapse and recursive children. */
-const TreeNodeView = memo(function TreeNodeView({ maxDepth, node }: TreeNodeViewProps) {
+const TreeNodeView = memo(function TreeNodeView({
+  maxDepth,
+  node,
+  revealDepth,
+}: TreeNodeViewProps) {
   const [expanded, setExpanded] = useState(true);
   const hasChildren = node.children.length > 0;
+  const isDimmed = revealDepth != null && node.depth > revealDepth;
 
   const handleToggle = useCallback(() => {
     if (hasChildren) setExpanded((prev) => !prev);
@@ -75,6 +96,7 @@ const TreeNodeView = memo(function TreeNodeView({ maxDepth, node }: TreeNodeView
     "tree-node-header",
     node.exceeded ? "exceeded" : "",
     node.ignored ? "ignored" : "",
+    isDimmed ? "anim-dimmed" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -95,11 +117,30 @@ const TreeNodeView = memo(function TreeNodeView({ maxDepth, node }: TreeNodeView
     !node.isInlineFragment &&
     !node.ignored;
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        handleToggle();
+      }
+    },
+    [handleToggle],
+  );
+
   return (
     <div className="tree-node">
-      <div className={headerClasses} onClick={handleToggle}>
+      <div
+        aria-expanded={hasChildren ? expanded : undefined}
+        aria-label={node.fieldName}
+        className={headerClasses}
+        onClick={handleToggle}
+        onKeyDown={handleKeyDown}
+        role="treeitem"
+        tabIndex={0}
+      >
         {/* Toggle arrow */}
         <span
+          aria-hidden="true"
           className={`tree-toggle${hasChildren ? "" : " leaf"}${!expanded ? " collapsed" : ""}`}
         >
           {hasChildren ? "\u25BC" : "\u00B7"}
@@ -107,17 +148,16 @@ const TreeNodeView = memo(function TreeNodeView({ maxDepth, node }: TreeNodeView
 
         {/* Fragment icon */}
         {(node.isFragment || node.isInlineFragment) && (
-          <span className="tree-fragment-icon">{"\u25C7"}</span>
+          <span aria-hidden="true" className="tree-fragment-icon">
+            {"\u25C7"}
+          </span>
         )}
 
         {/* Field name */}
         {node.alias ? (
-          <span
-            className={nameClasses}
-            dangerouslySetInnerHTML={{
-              __html: `<span class="tree-alias">${escapeHtml(node.alias)}:</span> ${escapeHtml(node.fieldName)}`,
-            }}
-          />
+          <span className={nameClasses}>
+            <span className="tree-alias">{node.alias}:</span> {node.fieldName}
+          </span>
         ) : (
           <span className={nameClasses}>{node.fieldName}</span>
         )}
@@ -148,9 +188,15 @@ const TreeNodeView = memo(function TreeNodeView({ maxDepth, node }: TreeNodeView
 
       {/* Children */}
       {hasChildren && (
-        <div className={`tree-node-children${expanded ? "" : " collapsed"}`}>
+        // biome-ignore lint/a11y/useSemanticElements: role="group" is the correct WAI-ARIA tree pattern
+        <div className={`tree-node-children${expanded ? "" : " collapsed"}`} role="group">
           {node.children.map((child, i) => (
-            <TreeNodeView key={`${child.fieldName}-${i}`} maxDepth={maxDepth} node={child} />
+            <TreeNodeView
+              key={`${child.fieldName}-${i}`}
+              maxDepth={maxDepth}
+              node={child}
+              revealDepth={revealDepth}
+            />
           ))}
         </div>
       )}

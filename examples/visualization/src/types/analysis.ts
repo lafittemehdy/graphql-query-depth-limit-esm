@@ -36,6 +36,7 @@ export interface OperationResult {
 
 /** A preset query with display metadata. */
 export interface Preset {
+  description: string;
   id: string;
   label: string;
   options: DepthOptions;

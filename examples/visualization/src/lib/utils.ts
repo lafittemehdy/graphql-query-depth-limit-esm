@@ -5,6 +5,19 @@
  */
 
 // ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+/** Duration (ms) to show the "Copied!" feedback before resetting. */
+export const COPY_FEEDBACK_MS = 1500;
+
+/** Debounce delay (ms) for analysis re-computation on query changes. */
+export const ANALYSIS_DEBOUNCE_MS = 200;
+
+/** Ratio threshold (depth / maxDepth) above which a badge turns "warn". */
+const WARNING_THRESHOLD = 0.6;
+
+// ---------------------------------------------------------------------------
 // Clipboard
 // ---------------------------------------------------------------------------
 
@@ -21,22 +34,8 @@ export function copyToClipboard(text: string, onSuccess: () => void): void {
 export function depthBadgeClass(depth: number, maxDepth: number): "crit" | "safe" | "warn" {
   const ratio = maxDepth > 0 ? depth / maxDepth : 0;
   if (ratio > 1) return "crit";
-  if (ratio > 0.6) return "warn";
+  if (ratio > WARNING_THRESHOLD) return "warn";
   return "safe";
-}
-
-// ---------------------------------------------------------------------------
-// HTML escaping
-// ---------------------------------------------------------------------------
-
-/** Escape HTML special characters for safe insertion into innerHTML. */
-export function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 // ---------------------------------------------------------------------------
@@ -62,6 +61,30 @@ export function isTextInput(el: EventTarget | null): boolean {
 export function pressureClass(depth: number, maxDepth: number): "crit" | "safe" | "warn" {
   if (depth > maxDepth) return "crit";
   const ratio = maxDepth > 0 ? depth / maxDepth : 0;
-  if (ratio > 0.6) return "warn";
+  if (ratio > WARNING_THRESHOLD) return "warn";
   return "safe";
+}
+
+// ---------------------------------------------------------------------------
+// Intro state persistence
+// ---------------------------------------------------------------------------
+
+const INTRO_DISABLED_KEY = "gqd-intro-disabled";
+
+/** Check whether the user has permanently disabled the intro prompt. */
+export function isIntroDisabled(): boolean {
+  try {
+    return localStorage.getItem(INTRO_DISABLED_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Permanently disable the intro prompt on future reloads. */
+export function disableIntro(): void {
+  try {
+    localStorage.setItem(INTRO_DISABLED_KEY, "1");
+  } catch {
+    // Ignore storage errors
+  }
 }

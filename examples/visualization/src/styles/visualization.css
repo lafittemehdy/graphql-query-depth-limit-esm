@@ -5,7 +5,7 @@
    ================================================================ */
 
 /* ================================================================
-   CSS Variables
+   Design tokens  (visualization family)
    ================================================================ */
 :root {
   --accent: #d4a24c;
@@ -23,13 +23,31 @@
   --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
   --header-h: 48px;
   --info: #7aa2d4;
-  --left-panel-w: 320px;
-  --radius: 8px;
-  --result-panel-w: 300px;
+  --radius: 4px;
+  --radius-lg: 8px;
+  --radius-sm: 2px;
+  --snappy: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Motion tokens */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-sine: cubic-bezier(0.37, 0, 0.63, 1);
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 350ms;
+
+  /* Glow tokens */
+  --accent-glow: rgba(212, 162, 76, 0.12);
+  --error-glow: rgba(200, 104, 96, 0.12);
+  --success-glow: rgba(128, 184, 88, 0.12);
+
   --success: #80b858;
   --text: #d8d8d8;
   --text-muted: #555;
   --text-secondary: #808080;
+
+  /* Project-specific tokens */
+  --left-panel-w: 320px;
+  --result-panel-w: 300px;
   --tree-depth-0: var(--success);
   --tree-depth-crit: var(--error);
   --tree-depth-warn: var(--accent);
@@ -59,11 +77,28 @@
   color: var(--bg);
 }
 
+button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+input {
+  font: inherit;
+}
+
+html,
 body {
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-ui);
+  font-size: 13px;
   height: var(--app-vh);
+  line-height: 1.5;
   min-height: 100svh;
   overflow: hidden;
   width: 100vw;
@@ -75,12 +110,145 @@ body::after {
   height: 300%;
   left: -50%;
   mix-blend-mode: overlay;
-  opacity: 0.055;
+  opacity: 0.04;
   pointer-events: none;
   position: fixed;
   top: -50%;
   width: 300%;
   z-index: 9999;
+}
+
+/* ================================================================
+   Welcome Prompt
+   ================================================================ */
+
+.welcome {
+  align-items: center;
+  background: var(--bg);
+  display: flex;
+  height: 100%;
+  justify-content: center;
+  left: 0;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 200;
+}
+
+.welcome-content {
+  align-items: center;
+  animation: welcome-in 0.6s var(--ease-out-expo) both;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 320px;
+  padding: 24px;
+  text-align: center;
+}
+
+.welcome-title {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.welcome-subtitle {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  margin-top: 12px;
+  max-width: 280px;
+}
+
+.welcome-play {
+  background: transparent;
+  border: 1px solid rgba(212, 162, 76, 0.3);
+  border-radius: 4px;
+  color: var(--accent);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  margin-top: 32px;
+  padding: 10px 24px;
+  transition:
+    background var(--duration-base) var(--ease-out-expo),
+    border-color var(--duration-base) var(--ease-out-expo),
+    box-shadow var(--duration-slow) var(--ease-out-expo);
+}
+
+.welcome-play:hover {
+  background: rgba(212, 162, 76, 0.06);
+  border-color: rgba(212, 162, 76, 0.5);
+  box-shadow: 0 0 20px var(--accent-glow);
+}
+
+.welcome-play:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+  outline: none;
+}
+
+.welcome-play-arrow {
+  display: inline-block;
+  transition: transform var(--duration-base) var(--ease-out-expo);
+}
+
+.welcome-play:hover .welcome-play-arrow {
+  transform: translateX(4px);
+}
+
+.welcome-skip {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  margin-top: 14px;
+  padding: 4px 8px;
+  transition: color 0.15s;
+}
+
+.welcome-skip:hover {
+  color: var(--text-secondary);
+}
+
+.welcome-opt-out {
+  align-items: center;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  gap: 6px;
+  letter-spacing: 0.02em;
+  margin-top: 24px;
+  user-select: none;
+}
+
+.welcome-opt-out input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+  height: 12px;
+  width: 12px;
+}
+
+@keyframes welcome-in {
+  from {
+    filter: blur(4px);
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    filter: blur(0);
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* ================================================================
@@ -91,11 +259,10 @@ body::after {
   background: var(--bg-header);
   border-bottom: 1px solid var(--border);
   display: flex;
-  gap: 10px;
+  gap: 12px;
   height: var(--header-h);
-  isolation: isolate;
   justify-content: space-between;
-  padding: 0 24px;
+  padding: 0 20px;
   position: fixed;
   top: 0;
   width: 100%;
@@ -121,8 +288,8 @@ body::after {
   text-overflow: ellipsis;
   text-transform: uppercase;
   transition:
-    border-color 0.15s ease,
-    color 0.15s ease;
+    border-color 0.15s var(--snappy),
+    color 0.15s var(--snappy);
   white-space: nowrap;
 }
 
@@ -137,28 +304,26 @@ body::after {
   align-items: center;
   background: var(--bg-elevated);
   border: 1px solid var(--border);
-  border-radius: 6px;
+  border-radius: var(--radius);
   color: var(--text-muted);
   display: inline-flex;
   font-family: var(--font-mono);
   font-size: 11px;
-  gap: 6px;
-  padding: 4px 8px;
+  gap: 8px;
+  letter-spacing: 0.02em;
+  padding: 4px 8px 4px 12px;
 }
 
 .header-install-copy {
   align-items: center;
-  background: none;
-  border: none;
   color: var(--text-muted);
-  cursor: pointer;
   display: inline-flex;
-  padding: 0;
-  transition: color 0.15s ease;
+  padding: 2px;
+  transition: color var(--duration-fast) var(--ease-out-expo);
 }
 
 .header-install-copy:hover {
-  color: var(--text);
+  color: var(--accent-hover);
 }
 
 .header-right {
@@ -170,26 +335,26 @@ body::after {
   min-width: 0;
 }
 
-.header-btn {
-  background: transparent;
+.header-action-btn {
+  align-items: center;
   border: 1px solid var(--border);
-  border-radius: 16px;
+  border-radius: 100px;
   color: var(--text-secondary);
-  cursor: pointer;
-  font-family: inherit;
+  display: inline-flex;
   font-size: 11px;
+  gap: 4px;
   padding: 5px 12px;
-  transition: all 0.15s ease;
+  transition: all 0.15s var(--snappy);
   white-space: nowrap;
 }
 
-.header-btn:hover {
+.header-action-btn:hover {
   background: var(--bg-elevated);
   border-color: var(--border-hover);
   color: var(--text);
 }
 
-.header-btn.active {
+.header-action-btn.active {
   border-color: var(--accent);
   color: var(--text);
 }
@@ -211,7 +376,7 @@ body::after {
    ================================================================ */
 .left-panel {
   background: #080808;
-  border-right: 1px solid #1a1a1a;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   flex-direction: column;
   min-width: 0;
@@ -220,13 +385,13 @@ body::after {
 }
 
 .left-section {
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .section-header {
   align-items: center;
   background: #0c0c0c;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   gap: 8px;
   height: 32px;
@@ -312,7 +477,7 @@ body::after {
   font-size: 9px;
   letter-spacing: 0.03em;
   padding: 4px 8px;
-  transition: all 0.15s ease;
+  transition: all 0.15s var(--snappy);
 }
 
 .segment-btn:first-child {
@@ -346,7 +511,7 @@ body::after {
   cursor: pointer;
   height: 18px;
   position: relative;
-  transition: all 0.2s ease;
+  transition: all 0.2s var(--snappy);
   width: 32px;
 }
 
@@ -358,7 +523,7 @@ body::after {
   left: 2px;
   position: absolute;
   top: 2px;
-  transition: all 0.2s ease;
+  transition: all 0.2s var(--snappy);
   width: 12px;
 }
 
@@ -405,7 +570,7 @@ body::after {
   height: 22px;
   line-height: 1;
   padding: 0;
-  transition: all 0.15s ease;
+  transition: all 0.15s var(--snappy);
   width: 22px;
 }
 
@@ -442,7 +607,7 @@ body::after {
   font-size: 12px;
   line-height: 1;
   padding: 0;
-  transition: color 0.15s ease;
+  transition: color 0.15s var(--snappy);
 }
 
 .ignore-chip-remove:hover {
@@ -459,34 +624,65 @@ body::after {
   min-height: 0;
 }
 
-.preset-row {
-  display: grid;
-  gap: 4px;
-  grid-template-columns: repeat(3, 1fr);
-  padding: 8px 12px;
+.preset-bar {
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px 16px;
+  row-gap: 4px;
 }
 
 .preset-btn {
   background: transparent;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 100px;
   color: var(--text-secondary);
-  cursor: pointer;
-  font-family: inherit;
-  font-size: 10px;
-  padding: 5px 0;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  padding: 4px 12px;
   text-align: center;
-  transition: all 0.15s ease;
+  transition:
+    background var(--duration-fast) var(--ease-out-expo),
+    border-color var(--duration-fast) var(--ease-out-expo),
+    box-shadow var(--duration-base) var(--ease-out-expo),
+    color var(--duration-fast) var(--ease-out-expo),
+    transform var(--duration-fast) var(--ease-out-expo);
+  white-space: nowrap;
 }
 
 .preset-btn:hover {
   background: var(--bg-elevated);
   border-color: var(--border-hover);
+  color: var(--text);
+}
+
+.preset-btn:active {
+  transform: scale(0.96);
+}
+
+.preset-btn:focus-visible {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+  outline: none;
 }
 
 .preset-btn.active {
+  background: rgba(212, 162, 76, 0.06);
   border-color: var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
   color: var(--text);
+}
+
+.preset-description {
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  margin-left: auto;
+  transition: opacity 0.15s;
 }
 
 .editor-wrap {
@@ -523,63 +719,10 @@ body::after {
   font-style: italic;
 }
 
-/* ---- Slot Tabs (Comparison Mode) ---- */
-.slot-tabs {
-  display: none;
-  gap: 4px;
-}
-
-.slot-tabs.visible {
-  display: flex;
-}
-
-.slot-tab {
-  align-items: center;
-  background: transparent;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  color: var(--text-muted);
-  cursor: pointer;
-  display: inline-flex;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  gap: 4px;
-  padding: 2px 8px;
-  transition: all 0.15s ease;
-}
-
-.slot-tab:hover {
-  border-color: var(--border-hover);
-}
-
-.slot-tab.active {
-  border-color: var(--accent);
-  color: var(--text);
-}
-
-.slot-dot {
-  border-radius: 50%;
-  height: 6px;
-  width: 6px;
-}
-
-.slot-dot.safe {
-  background: var(--success);
-}
-.slot-dot.fail {
-  background: var(--error);
-}
-.slot-dot.pending {
-  background: #333;
-}
-
 /* ================================================================
    AST Tree Visualization
    ================================================================ */
 .tree-viewport {
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cline x1='100' y1='88' x2='100' y2='112' stroke='%23161616' stroke-width='0.8'/%3E%3Cline x1='88' y1='100' x2='112' y2='100' stroke='%23161616' stroke-width='0.8'/%3E%3C/svg%3E");
-  background-position: center center;
-  background-size: 200px 200px;
   overflow: auto;
   padding: 24px;
   position: relative;
@@ -642,7 +785,11 @@ body::after {
 .tree-node-children {
   border-left: 1px solid rgba(255, 255, 255, 0.06);
   margin-left: 14px;
+  overflow: hidden;
   padding-left: 10px;
+  transition:
+    grid-template-rows var(--duration-base) var(--ease-out-expo),
+    opacity var(--duration-base) var(--ease-out-expo);
 }
 
 .tree-node-children.collapsed {
@@ -657,11 +804,14 @@ body::after {
   gap: 6px;
   min-height: 28px;
   padding: 3px 8px;
-  transition: background 0.15s ease;
+  transition:
+    background var(--duration-fast) var(--ease-out-expo),
+    box-shadow var(--duration-base) var(--ease-out-expo);
 }
 
 .tree-node-header:hover {
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: inset 2px 0 0 rgba(212, 162, 76, 0.3);
 }
 
 /* ---- Toggle Arrow ---- */
@@ -669,7 +819,7 @@ body::after {
   color: var(--text-muted);
   flex-shrink: 0;
   font-size: 8px;
-  transition: transform 0.15s ease;
+  transition: transform var(--duration-base) var(--ease-out-expo);
   width: 10px;
 }
 
@@ -712,7 +862,7 @@ body::after {
 /* ---- Depth Badge ---- */
 .tree-depth-badge {
   border: 1px solid;
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   flex-shrink: 0;
   font-family: var(--font-mono);
   font-size: 9px;
@@ -724,16 +874,26 @@ body::after {
 .tree-depth-badge.safe {
   border-color: rgba(128, 184, 88, 0.4);
   color: var(--success);
+  transition:
+    border-color var(--duration-base) var(--ease-out-expo),
+    box-shadow var(--duration-slow) var(--ease-out-expo),
+    color var(--duration-base) var(--ease-out-expo);
 }
 
 .tree-depth-badge.warn {
   border-color: rgba(212, 162, 76, 0.4);
+  box-shadow: 0 0 8px var(--accent-glow);
   color: var(--accent);
+  transition:
+    border-color var(--duration-base) var(--ease-out-expo),
+    box-shadow var(--duration-slow) var(--ease-out-expo),
+    color var(--duration-base) var(--ease-out-expo);
 }
 
 .tree-depth-badge.crit {
-  animation: violation-pulse-badge 0.8s ease-in-out 2;
+  animation: violation-pulse-badge 0.8s ease-in-out 3;
   border-color: rgba(200, 104, 96, 0.5);
+  box-shadow: 0 0 10px var(--error-glow);
   color: var(--error);
 }
 
@@ -750,7 +910,7 @@ body::after {
 /* ---- Ignored Label ---- */
 .tree-ignored-label {
   border: 1px solid rgba(102, 102, 102, 0.3);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   color: var(--text-muted);
   font-family: var(--font-mono);
   font-size: 8px;
@@ -764,6 +924,7 @@ body::after {
 .tree-node-header.exceeded {
   background: rgba(200, 104, 96, 0.06);
   border: 1px solid rgba(200, 104, 96, 0.15);
+  box-shadow: 0 0 16px var(--error-glow);
 }
 
 .tree-node-header.exceeded .tree-field-name {
@@ -793,7 +954,7 @@ body::after {
 /* ---- Cycle Warning ---- */
 .tree-cycle-warning {
   border: 1px solid rgba(212, 162, 76, 0.3);
-  border-radius: 8px;
+  border-radius: var(--radius-lg);
   color: var(--accent);
   font-family: var(--font-mono);
   font-size: 9px;
@@ -827,7 +988,7 @@ body::after {
   position: absolute;
   right: 8px;
   top: 8px;
-  transition: all 0.15s ease;
+  transition: all 0.15s var(--snappy);
   width: 24px;
   z-index: 5;
 }
@@ -890,7 +1051,7 @@ body::after {
 }
 
 .pressure-track {
-  background: #1a1a1a;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 3px;
   flex: 1;
   height: 6px;
@@ -903,23 +1064,23 @@ body::after {
   border-radius: 3px;
   height: 100%;
   transition:
-    background 0.3s ease,
-    box-shadow 0.3s ease,
-    width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+    background var(--duration-slow) var(--ease-out-expo),
+    box-shadow var(--duration-slow) var(--ease-out-expo),
+    width 0.4s var(--ease-out-expo);
   width: 0;
 }
 
 .pressure-fill.safe {
-  background: #80b858;
-  box-shadow: 0 0 6px rgba(128, 184, 88, 0.2);
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success-glow);
 }
 .pressure-fill.warn {
-  background: #d4a24c;
-  box-shadow: 0 0 6px rgba(212, 162, 76, 0.2);
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 .pressure-fill.crit {
-  background: #c86860;
-  box-shadow: 0 0 6px rgba(200, 104, 96, 0.2);
+  background: var(--error);
+  box-shadow: 0 0 10px var(--error-glow);
 }
 
 /* ---- Stepper ---- */
@@ -941,7 +1102,7 @@ body::after {
   font-family: var(--font-mono);
   font-size: 12px;
   height: 24px;
-  transition: all 0.1s ease;
+  transition: all 0.1s var(--snappy);
   width: 20px;
 }
 
@@ -968,9 +1129,10 @@ body::after {
 
 /* ---- Result Badge ---- */
 .result-badge {
-  background: #000;
-  border: 1px solid #333;
-  border-radius: 4px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  display: block;
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 700;
@@ -982,17 +1144,26 @@ body::after {
 }
 
 .result-badge.pass {
-  border-color: #80b858;
-  color: #80b858;
+  background: rgba(128, 184, 88, 0.06);
+  border-color: rgba(128, 184, 88, 0.3);
+  color: var(--success);
 }
+
 .result-badge.fail {
-  border-color: #c86860;
-  color: #c86860;
+  background: rgba(200, 104, 96, 0.06);
+  border-color: rgba(200, 104, 96, 0.3);
+  color: var(--error);
 }
 
 .result-badge.idle {
-  border-color: #222;
-  color: #444;
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
+.result-badge-path {
+  font-size: 9px;
+  margin-top: 4px;
+  opacity: 0.7;
 }
 
 /* ---- Error Details ---- */
@@ -1053,7 +1224,7 @@ body::after {
   font-size: 11px;
   opacity: 0.6;
   padding: 2px 4px;
-  transition: opacity 0.15s ease;
+  transition: opacity 0.15s var(--snappy);
 }
 
 .copy-btn:hover {
@@ -1079,7 +1250,7 @@ body::after {
   padding: 6px 14px;
   position: fixed;
   transform: translateX(-50%);
-  transition: all 0.15s ease;
+  transition: all 0.15s var(--snappy);
   z-index: 200;
 }
 
@@ -1105,30 +1276,32 @@ body::after {
 }
 
 /* ================================================================
-   Scrollbar
+   Scrollbar (webkit)
    ================================================================ */
-* {
-  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
-  scrollbar-width: thin;
+::-webkit-scrollbar {
+  height: 4px;
+  width: 4px;
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-}
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: var(--border-hover);
-  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.14);
 }
 
 /* ================================================================
    Focus
    ================================================================ */
 :focus-visible {
-  outline: 2px solid rgba(212, 162, 76, 0.6);
-  outline-offset: 2px;
+  outline: 1px solid rgba(212, 162, 76, 0.5);
+  outline-offset: 1px;
 }
 
 /* ================================================================
@@ -1152,7 +1325,7 @@ body::after {
     --left-panel-w: 260px;
   }
 
-  .preset-row {
+  .preset-bar {
     grid-template-columns: repeat(3, 1fr);
   }
 
@@ -1163,7 +1336,7 @@ body::after {
     right: 0;
     top: var(--header-h);
     transform: translateX(100%);
-    transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.25s var(--snappy);
     width: var(--result-panel-w);
     z-index: 130;
   }
@@ -1213,7 +1386,7 @@ body::after {
   }
 
   .left-panel {
-    border-bottom: 1px solid #1a1a1a;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     border-right: none;
     flex: 0 0 auto;
     max-height: 50vh;
@@ -1231,7 +1404,7 @@ body::after {
 
   .result-panel {
     border-left: none;
-    border-radius: 14px 14px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     border-top: 1px solid var(--border);
     bottom: 0;
     left: 0;
@@ -1239,7 +1412,7 @@ body::after {
     right: 0;
     top: auto;
     transform: translateY(100%);
-    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: transform 0.3s var(--snappy);
     width: 100%;
     z-index: 200;
   }
@@ -1259,7 +1432,7 @@ body::after {
     display: inline-flex;
   }
 
-  .preset-row {
+  .preset-bar {
     grid-template-columns: repeat(3, 1fr);
   }
 }
@@ -1272,7 +1445,7 @@ body::after {
     --header-h: 86px;
   }
 
-  .preset-row {
+  .preset-bar {
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -1297,5 +1470,47 @@ body::after {
   .tree-depth-badge {
     font-size: 8px;
     padding: 1px 4px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Animation: The Descent
+   --------------------------------------------------------------------------- */
+
+.tree-node-header.anim-dimmed {
+  opacity: 0.06;
+  transition: opacity 350ms var(--ease-out-expo);
+}
+
+.tree-node-header.anim-dimmed .tree-depth-badge {
+  opacity: 0;
+}
+
+.playground-layout.animating .left-panel {
+  opacity: 0.3;
+  pointer-events: none;
+  transition: opacity 400ms var(--ease-out-expo);
+}
+
+.result-badge.shaking {
+  animation: shake 250ms ease-in-out;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(3px);
   }
 }

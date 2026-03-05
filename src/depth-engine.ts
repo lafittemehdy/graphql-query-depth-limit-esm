@@ -186,9 +186,17 @@ function calculateDepth(
 			continue;
 		}
 
-		const nextFrames: StackFrame[] = [];
-
-		for (const selection of frame.node.selectionSet.selections) {
+		// Iterate in reverse and push directly so DFS still processes selections
+		// in the original query order without allocating an intermediate array.
+		for (
+			let selectionIndex = frame.node.selectionSet.selections.length - 1;
+			selectionIndex >= 0;
+			selectionIndex--
+		) {
+			const selection = frame.node.selectionSet.selections[selectionIndex];
+			if (!selection) {
+				continue;
+			}
 			switch (selection.kind) {
 				case Kind.FIELD: {
 					const fieldName = selection.name.value;
@@ -271,10 +279,10 @@ function calculateDepth(
 						const recursionKey = parentName ? `${parentName}:${fieldName}` : fieldName;
 
 						if (ignoredFieldsOnPath.has(recursionKey)) {
-							// Same type:field was already ignored on this path — increment depth
+							// Same type:field was already ignored on this path - increment depth
 							effectivelyIgnored = false;
 						} else {
-							// First occurrence — track it for subsequent path segments
+							// First occurrence - track it for subsequent path segments
 							ignoredFieldsOnPath = new Set(ignoredFieldsOnPath);
 							ignoredFieldsOnPath.add(recursionKey);
 						}
@@ -310,9 +318,7 @@ function calculateDepth(
 						}
 					}
 
-					// Queue children and push in reverse after this selection set
-					// so DFS traversal follows query order deterministically.
-					nextFrames.push({
+					stack.push({
 						currentDepth: newDepth,
 						hasDirectiveLimit,
 						ignoredFieldsOnPath,
@@ -347,7 +353,7 @@ function calculateDepth(
 						? resolveTypeCondition(fragment.typeCondition.name.value, schema, frame.parentType)
 						: frame.parentType;
 
-					nextFrames.push({
+					stack.push({
 						currentDepth: frame.currentDepth,
 						hasDirectiveLimit: frame.hasDirectiveLimit,
 						ignoredFieldsOnPath: frame.ignoredFieldsOnPath,
@@ -365,7 +371,7 @@ function calculateDepth(
 						? resolveTypeCondition(selection.typeCondition.name.value, schema, frame.parentType)
 						: frame.parentType;
 
-					nextFrames.push({
+					stack.push({
 						currentDepth: frame.currentDepth,
 						hasDirectiveLimit: frame.hasDirectiveLimit,
 						ignoredFieldsOnPath: frame.ignoredFieldsOnPath,
@@ -382,13 +388,6 @@ function calculateDepth(
 					const exhaustiveCheck: never = selection;
 					throwUnhandledSelectionKind(exhaustiveCheck);
 				}
-			}
-		}
-
-		for (let index = nextFrames.length - 1; index >= 0; index--) {
-			const nextFrame = nextFrames[index];
-			if (nextFrame) {
-				stack.push(nextFrame);
 			}
 		}
 	}
@@ -451,7 +450,7 @@ function createTraversalCaches(): TraversalCaches {
  * in a single pass.
  *
  * **By design:** Duplicate fragment names are silently overwritten (last wins)
- * rather than raising a validation error. This is intentional — detecting
+ * rather than raising a validation error. This is intentional - detecting
  * duplicates is the responsibility of GraphQL's built-in `UniqueFragmentNamesRule`,
  * not a depth-limiting rule. When both rules run together (the normal case),
  * duplicates are already caught before this code executes. When used standalone,

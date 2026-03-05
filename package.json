@@ -1,8 +1,8 @@
 {
 	"name": "graphql-query-depth-limit-esm",
-	"version": "2.0.2",
+	"version": "2.0.5",
 	"description": "GraphQL query depth limiting validation rule with directive support, ignore rules, and fragment cycle detection",
-	"author": "Lafitte Mehdy",
+	"author": "Lafitte Mehdy (https://github.com/lafittemehdy)",
 	"license": "MIT",
 	"packageManager": "pnpm@10.18.3",
 	"type": "module",
@@ -23,13 +23,14 @@
 		"README.md"
 	],
 	"engines": {
-		"node": ">=22.0.0"
+		"node": ">=20.0.0"
 	},
 	"keywords": [
 		"depth-limit",
 		"dos-protection",
 		"esm",
 		"graphql",
+		"graphql-security",
 		"security",
 		"validation"
 	],

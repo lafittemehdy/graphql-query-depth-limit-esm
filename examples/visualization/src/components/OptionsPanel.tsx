@@ -6,8 +6,8 @@
  * @module OptionsPanel
  */
 
-import { type KeyboardEvent, useCallback, useState } from "react";
-import { escapeHtml } from "../lib/utils";
+import { type KeyboardEvent, useCallback, useEffect, useState } from "react";
+
 import type { DepthOptions } from "../types/analysis";
 
 // ---------------------------------------------------------------------------
@@ -117,6 +117,11 @@ interface StepperProps {
 function Stepper({ max, min, onChange, value }: StepperProps) {
   const [inputValue, setInputValue] = useState(String(value));
 
+  /* Sync internal state when value changes externally (e.g. preset switch). */
+  useEffect(() => {
+    setInputValue(String(value));
+  }, [value]);
+
   const handleDecrement = useCallback(() => {
     const next = Math.max(min, value - 1);
     setInputValue(String(next));
@@ -157,6 +162,7 @@ function Stepper({ max, min, onChange, value }: StepperProps) {
         &#x2212;
       </button>
       <input
+        aria-label="Max depth value"
         max={max}
         min={min}
         onBlur={handleBlur}
@@ -186,6 +192,7 @@ function SegmentToggle({ onChange, segments, value }: SegmentToggleProps) {
     <div className="segment-toggle">
       {segments.map((seg) => (
         <button
+          aria-pressed={seg === value}
           className={`segment-btn${seg === value ? " active" : ""}`}
           key={seg}
           onClick={() => onChange(seg)}
@@ -268,9 +275,9 @@ function IgnoreRules({ onChange, rules }: IgnoreRulesProps) {
             value={input}
           />
           <button
+            aria-label="Add ignore rule"
             className="ignore-add-btn"
             onClick={addRule}
-            title="Add ignore rule"
             type="button"
           >
             +
@@ -281,11 +288,11 @@ function IgnoreRules({ onChange, rules }: IgnoreRulesProps) {
         <div className="ignore-chips">
           {rules.map((rule) => (
             <span className="ignore-chip" key={rule}>
-              <span dangerouslySetInnerHTML={{ __html: escapeHtml(rule) }} />
+              <span>{rule}</span>
               <button
+                aria-label={`Remove rule: ${rule}`}
                 className="ignore-chip-remove"
                 onClick={() => removeRule(rule)}
-                title="Remove"
                 type="button"
               >
                 &times;

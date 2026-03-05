@@ -25,13 +25,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: examples/visualization/package-lock.json
+
+      - name: Install demo dependencies
+        working-directory: examples/visualization
+        run: npm ci
+
+      - name: Build demo
+        working-directory: examples/visualization
+        run: npm run build
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: examples/visualization
+          path: examples/visualization/dist
 
   deploy:
     name: Deploy to GitHub Pages

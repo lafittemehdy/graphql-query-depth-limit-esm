@@ -22,6 +22,7 @@ export const PRESET_ORDER = [
 /** All available presets, alphabetically ordered by id. */
 export const PRESETS: Preset[] = [
   {
+    description: "Recursive 5-level nesting that exceeds the max depth",
     id: "attack",
     label: "Deep / Attack",
     options: { ignore: [], ignoreIntrospection: "typename", maxDepth: 3 },
@@ -44,6 +45,7 @@ export const PRESETS: Preset[] = [
     ].join("\n"),
   },
   {
+    description: "Named and inline fragments with depth tracking",
     id: "fragment",
     label: "Fragment",
     options: { ignore: [], ignoreIntrospection: "typename", maxDepth: 4 },
@@ -72,6 +74,7 @@ export const PRESETS: Preset[] = [
     ].join("\n"),
   },
   {
+    description: "Field excluded from depth counting via ignore rules",
     id: "ignore",
     label: "Ignore",
     options: { ignore: ["metadata"], ignoreIntrospection: "typename", maxDepth: 3 },
@@ -95,6 +98,7 @@ export const PRESETS: Preset[] = [
     ].join("\n"),
   },
   {
+    description: "Schema introspection with all __ fields ignored",
     id: "introspection",
     label: "Introspection",
     options: { ignore: [], ignoreIntrospection: "all", maxDepth: 3 },
@@ -115,6 +119,7 @@ export const PRESETS: Preset[] = [
     ].join("\n"),
   },
   {
+    description: "Ignored recursive field with recursion guard enabled",
     id: "recursion",
     label: "Recursion Guard",
     options: {
@@ -143,6 +148,7 @@ export const PRESETS: Preset[] = [
     ].join("\n"),
   },
   {
+    description: "Basic user query well within the depth limit",
     id: "simple",
     label: "Simple",
     options: { ignore: [], ignoreIntrospection: "typename", maxDepth: 5 },
