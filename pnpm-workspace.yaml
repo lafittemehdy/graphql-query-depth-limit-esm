@@ -1,5 +1,11 @@
 packages:
-  - "."
-
-onlyBuiltDependencies:
-  - esbuild
+  - .
+allowBuilds:
+  '@apollo/protobufjs': true
+  esbuild: true
+overrides:
+  '@protobufjs/utf8': 1.1.1
+  picomatch: 4.0.4
+  postcss: 8.5.14
+  rollup: 4.60.4
+  vite: 7.3.3

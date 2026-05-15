@@ -4,7 +4,7 @@
 	"description": "GraphQL query depth limiting validation rule with directive support, ignore rules, and fragment cycle detection",
 	"author": "Lafitte Mehdy (https://github.com/lafittemehdy)",
 	"license": "MIT",
-	"packageManager": "pnpm@10.18.3",
+	"packageManager": "pnpm@11.1.2",
 	"type": "module",
 	"exports": {
 		".": {
@@ -51,18 +51,18 @@
 		"graphql": "^16.0.0 || ^17.0.0"
 	},
 	"devDependencies": {
-		"@apollo/server": "^5.4.0",
-		"@biomejs/biome": "^2.4.4",
-		"@types/node": "^25.3.0",
-		"@vitest/coverage-v8": "^4.0.18",
-		"@vitest/ui": "^4.0.18",
-		"graphql": "^16.12.0",
-		"graphql-yoga": "^5.18.0",
+		"@apollo/server": "^5.5.1",
+		"@biomejs/biome": "^2.4.15",
+		"@types/node": "^25.8.0",
+		"@vitest/coverage-v8": "^4.1.6",
+		"@vitest/ui": "^4.1.6",
+		"graphql": "^16.14.0",
+		"graphql-yoga": "^5.21.0",
 		"husky": "^9.1.7",
 		"tsup": "^8.5.1",
-		"tsx": "^4.21.0",
-		"typescript": "^5.9.3",
-		"vitest": "^4.0.18"
+		"tsx": "^4.22.0",
+		"typescript": "^6.0.3",
+		"vitest": "^4.1.6"
 	},
 	"scripts": {
 		"build": "tsup",

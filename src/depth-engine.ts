@@ -621,5 +621,5 @@ function resolveTypeCondition(
 	return currentParentType;
 }
 
-export { calculateDepth, createTraversalCaches, extractDefinitions };
 export type { DepthResult, TraversalCaches, TraversalConfig };
+export { calculateDepth, createTraversalCaches, extractDefinitions };

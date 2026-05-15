@@ -3,6 +3,7 @@
 		"declaration": true,
 		"declarationMap": true,
 		"forceConsistentCasingInFileNames": true,
+		"ignoreDeprecations": "6.0",
 		"isolatedModules": true,
 		"module": "NodeNext",
 		"moduleResolution": "nodenext",

@@ -29,7 +29,7 @@ for (const fileName of readdirSync(workflowsDir)) {
 
 	for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
 		const line = lines[lineIndex];
-		if (!line || !line.includes("pnpm/action-setup")) {
+		if (!line?.includes("pnpm/action-setup")) {
 			continue;
 		}
 

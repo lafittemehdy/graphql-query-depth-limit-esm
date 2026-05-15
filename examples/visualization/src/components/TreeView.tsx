@@ -30,7 +30,7 @@ interface TreeViewProps {
 
 /** Tree viewport showing parsed AST operations as an interactive nested tree. */
 export function TreeView({ maxDepth, result, revealDepth }: TreeViewProps) {
-  if (!result || !result.tree || result.tree.length === 0) {
+  if (!result?.tree || result.tree.length === 0) {
     const isError = result?.error && !result.tree;
     return (
       <main className="tree-viewport">
@@ -54,9 +54,9 @@ export function TreeView({ maxDepth, result, revealDepth }: TreeViewProps) {
   return (
     <main className="tree-viewport">
       <div className="tree-container" role="tree">
-        {result.tree.map((root, i) => (
+        {result.tree.map((root) => (
           <TreeNodeView
-            key={`${root.fieldName}-${i}`}
+            key={root.path.join(".")}
             maxDepth={maxDepth}
             node={root}
             revealDepth={revealDepth}
@@ -190,9 +190,9 @@ const TreeNodeView = memo(function TreeNodeView({
       {hasChildren && (
         // biome-ignore lint/a11y/useSemanticElements: role="group" is the correct WAI-ARIA tree pattern
         <div className={`tree-node-children${expanded ? "" : " collapsed"}`} role="group">
-          {node.children.map((child, i) => (
+          {node.children.map((child) => (
             <TreeNodeView
-              key={`${child.fieldName}-${i}`}
+              key={child.path.join(".")}
               maxDepth={maxDepth}
               node={child}
               revealDepth={revealDepth}
