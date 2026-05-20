@@ -692,13 +692,6 @@ body::after {
   padding: 0;
 }
 
-.editor-wrap .lab-editor {
-  height: 100%;
-  min-height: 100px;
-  padding: 12px;
-  resize: none;
-}
-
 .lab-editor {
   background: transparent;
   border: none;
@@ -712,6 +705,13 @@ body::after {
   scrollbar-color: var(--border-hover) transparent;
   scrollbar-width: thin;
   width: 100%;
+}
+
+.editor-wrap .lab-editor {
+  height: 100%;
+  min-height: 100px;
+  padding: 12px;
+  resize: none;
 }
 
 .lab-editor::placeholder {
@@ -1038,16 +1038,16 @@ body::after {
   font-size: 14px;
 }
 
-.gauge-display .pressure-meter {
-  flex: 1;
-}
-
 /* ---- Pressure Gauge ---- */
 .pressure-meter {
   align-items: center;
   display: flex;
   gap: 6px;
   min-width: 80px;
+}
+
+.gauge-display .pressure-meter {
+  flex: 1;
 }
 
 .pressure-track {

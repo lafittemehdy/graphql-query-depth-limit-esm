@@ -179,11 +179,8 @@ export function App() {
 
   // --- Welcome prompt handlers ---
 
-  /** Load the attack preset and start the intro animation. */
+  /** Start the intro animation for the current playground state. */
   const startAnimation = useCallback(() => {
-    setActivePresetId("attack");
-    setOptions(cloneOptions(ATTACK_PRESET.options));
-    setQueryText(ATTACK_PRESET.query);
     setBadgeVisible(false);
     setDepthOverride(0);
     setIsAnimating(true);
@@ -191,10 +188,18 @@ export function App() {
     setShaking(false);
   }, []);
 
-  const handleWelcomePlay = useCallback(() => {
-    setShowWelcome(false);
+  /** Load the guided attack preset and start the intro animation. */
+  const startGuidedIntro = useCallback(() => {
+    setActivePresetId("attack");
+    setOptions(cloneOptions(ATTACK_PRESET.options));
+    setQueryText(ATTACK_PRESET.query);
     startAnimation();
   }, [startAnimation]);
+
+  const handleWelcomePlay = useCallback(() => {
+    setShowWelcome(false);
+    startGuidedIntro();
+  }, [startGuidedIntro]);
 
   const handleWelcomeSkip = useCallback(() => {
     setShowWelcome(false);
