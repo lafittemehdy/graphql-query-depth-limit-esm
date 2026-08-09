@@ -61,7 +61,7 @@
 		"husky": "^9.1.7",
 		"tsup": "^8.5.1",
 		"tsx": "^4.23.9",
-		"typescript": "^6.0.3",
+		"typescript": "^7.0.2",
 		"vitest": "^4.1.10"
 	},
 	"scripts": {
