@@ -52,7 +52,7 @@
 	},
 	"devDependencies": {
 		"@apollo/server": "^5.5.1",
-		"@biomejs/biome": "^2.5.9",
+		"@biomejs/biome": "^2.5.12",
 		"@types/node": "^25.9.3",
 		"@vitest/coverage-v8": "^4.1.11",
 		"@vitest/ui": "^4.1.11",
@@ -60,7 +60,7 @@
 		"graphql-yoga": "^5.22.0",
 		"husky": "^9.1.7",
 		"tsup": "^8.5.1",
-		"tsx": "^4.23.12",
+		"tsx": "^4.23.13",
 		"typescript": "^6.0.3",
 		"vitest": "^4.1.11"
 	},
