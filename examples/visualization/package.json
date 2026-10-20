@@ -8,17 +8,17 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "graphql": "^16.14.2",
-    "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "graphql": "^17.0.2",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
   },
   "devDependencies": {
     "@emnapi/core": "^1.11.3",
     "@emnapi/runtime": "^1.11.3",
-    "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
-    "@vitejs/plugin-react": "^6.1.0",
-    "typescript": "^6.0.3",
-    "vite": "^8.2.2"
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4"
   }
 }

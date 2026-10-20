@@ -118,6 +118,7 @@ function createValidationRule(
 		const nextOperationName = createOperationNameAllocator(operations);
 
 		const config: TraversalConfig = {
+			maxNodes: options?.maxNodes,
 			caseInsensitiveIgnore: options?.caseInsensitiveIgnore ?? false,
 			directiveMode: options?.directiveMode ?? "cap",
 			ignore: options?.ignore,
@@ -148,6 +149,10 @@ function createValidationRule(
 			try {
 				result = calculateDepth(caches, config, fragments, maxDepth, operation, rootType, schema);
 			} catch (error) {
+				if (error instanceof GraphQLError) {
+					context.reportError(error);
+					continue;
+				}
 				if (error instanceof Error && error.name === "IgnoreRuleError") {
 					context.reportError(
 						new GraphQLError(error.message, {

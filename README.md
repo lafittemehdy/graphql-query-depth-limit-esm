@@ -6,10 +6,10 @@
 [![npm version](https://img.shields.io/npm/v/graphql-query-depth-limit-esm?logo=npm)](https://www.npmjs.com/package/graphql-query-depth-limit-esm)
 [![npm downloads](https://img.shields.io/npm/dm/graphql-query-depth-limit-esm?logo=npm)](https://www.npmjs.com/package/graphql-query-depth-limit-esm)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Node >=20](https://img.shields.io/badge/node-%3E%3D20-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Node >=22.18](https://img.shields.io/badge/node-%3E%3D22.18-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Provenance](https://img.shields.io/badge/provenance-verified-brightgreen?logo=npm)](https://www.npmjs.com/package/graphql-query-depth-limit-esm)
 
-Production-ready GraphQL query depth limiting as a validation rule. Prevents denial-of-service attacks from deeply nested queries by enforcing a configurable maximum depth.
+GraphQL query depth limiting as a validation rule. Expanded traversal is capped at 10,000 selection nodes per operation, including repeated fragment spreads; configure `maxNodes` to change this budget. Exceeding it reports `NODE_LIMIT_EXCEEDED`. Prevents denial-of-service attacks from deeply nested queries by enforcing a configurable maximum depth.
 
 ## Interactive Demo
 

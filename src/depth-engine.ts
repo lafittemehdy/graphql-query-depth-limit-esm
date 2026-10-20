@@ -2,6 +2,7 @@ import {
 	type ASTNode,
 	type DefinitionNode,
 	type FragmentDefinitionNode,
+	GraphQLError,
 	type GraphQLField,
 	type GraphQLInterfaceType,
 	type GraphQLObjectType,
@@ -15,7 +16,7 @@ import {
 	type OperationDefinitionNode,
 	type SelectionNode,
 } from "graphql";
-
+import { ERROR_CODES } from "./constants.js";
 import { getDepthFromDirective } from "./directives.js";
 import { shouldIgnoreField } from "./ignore.js";
 import type { DirectiveMode, IgnoreMode, IgnoreRule, IntrospectionMode } from "./types.js";
@@ -108,6 +109,7 @@ interface TraversalCaches {
  * @internal
  */
 interface TraversalConfig {
+	maxNodes?: number;
 	/** Whether to use case-insensitive matching for string ignore rules */
 	caseInsensitiveIgnore: boolean;
 	/** Controls how `@depth` directives interact with the global `maxDepth` */
@@ -163,6 +165,7 @@ function calculateDepth(
 ): DepthResult {
 	let deepestViolation: DepthViolation | null = null;
 	let globalMaxDepth = 0;
+	let nodeCount = 0;
 
 	if (!node.selectionSet) {
 		return { depth: 0, violation: null };
@@ -196,6 +199,17 @@ function calculateDepth(
 			const selection = frame.node.selectionSet.selections[selectionIndex];
 			if (!selection) {
 				continue;
+			}
+			// Bound fragment expansion even when every branch stays below maxDepth.
+			if (++nodeCount > (config.maxNodes ?? 10_000)) {
+				throw new GraphQLError("Query exceeds maximum expanded node limit.", {
+					nodes: [selection],
+					extensions: {
+						code: ERROR_CODES.NODE_LIMIT_EXCEEDED,
+						maxNodes: config.maxNodes ?? 10_000,
+						nodeCount,
+					},
+				});
 			}
 			switch (selection.kind) {
 				case Kind.FIELD: {

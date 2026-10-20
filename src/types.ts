@@ -42,6 +42,9 @@ export interface DepthLimitFunction {
  * ```
  */
 export interface DepthLimitOptions {
+	/** Maximum expanded selection nodes per operation, including fragment reuse. @default 10000 */
+	maxNodes?: number;
+
 	/**
 	 * Enable case-insensitive matching for string ignore rules.
 	 *

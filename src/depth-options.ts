@@ -69,6 +69,12 @@ function normalizeIgnoreRules(ignore: DepthLimitOptions["ignore"]): IgnoreRule[]
  * Normalizes and validates depthLimit options.
  */
 function normalizeDepthLimitOptions(options: DepthLimitOptions): NormalizedDepthLimitOptions {
+	if (
+		options.maxNodes !== undefined &&
+		(!Number.isSafeInteger(options.maxNodes) || options.maxNodes <= 0)
+	) {
+		throw new TypeError("Invalid maxNodes: expected a positive safe integer.");
+	}
 	assertBooleanOption("caseInsensitiveIgnore", options.caseInsensitiveIgnore);
 
 	if (options.directiveMode !== undefined && !DIRECTIVE_MODES.has(options.directiveMode)) {

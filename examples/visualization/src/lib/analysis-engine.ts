@@ -90,6 +90,16 @@ export function analyzeQuery(queryString: string, options: DepthOptions): Analys
     };
 
     const result = walkOperation(operation, fragments, maxDepth, options, treeRoot);
+    if (result.error) {
+      return {
+        callbackPayload: null,
+        depth: 0,
+        error: result.error,
+        operations: [],
+        tree: null,
+        violation: null,
+      };
+    }
     callbackPayload[opName] = result.maxDepth;
     operationResults.push({ name: opName, ...result, tree: treeRoot });
 
@@ -161,7 +171,8 @@ function walkOperation(
   maxDepth: number,
   options: DepthOptions,
   treeRoot: TreeNode,
-): { maxDepth: number; violation: DepthViolation | null } {
+): { maxDepth: number; violation: DepthViolation | null; error?: string } {
+  let selectionCount = 0;
   const stack: StackFrame[] = [
     {
       depth: 0,
@@ -183,6 +194,13 @@ function walkOperation(
     const selections = [...frame.node.selectionSet.selections].reverse();
 
     for (const selection of selections) {
+      if (++selectionCount > 10_000) {
+        return {
+          maxDepth: maxFoundDepth,
+          violation,
+          error: "Query exceeds maximum expanded node limit of 10000.",
+        };
+      }
       if (selection.kind === Kind.FIELD) {
         const fieldName: string = selection.name.value;
         const aliasName: string | undefined = selection.alias?.value;

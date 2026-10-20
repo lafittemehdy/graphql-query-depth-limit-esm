@@ -4,13 +4,18 @@
 	"description": "GraphQL query depth limiting validation rule with directive support, ignore rules, and fragment cycle detection",
 	"author": "Lafitte Mehdy (https://github.com/lafittemehdy)",
 	"license": "MIT",
-	"packageManager": "pnpm@10.33.4",
+	"packageManager": "pnpm@12.14.0",
 	"type": "module",
 	"exports": {
 		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.cjs",
+			"import": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
+			},
+			"require": {
+				"types": "./dist/index.d.cts",
+				"default": "./dist/index.cjs"
+			},
 			"default": "./dist/index.js"
 		}
 	},
@@ -23,7 +28,7 @@
 		"README.md"
 	],
 	"engines": {
-		"node": ">=20.0.0"
+		"node": ">=22.18.0"
 	},
 	"keywords": [
 		"depth-limit",
@@ -52,17 +57,17 @@
 	},
 	"devDependencies": {
 		"@apollo/server": "^5.5.1",
-		"@biomejs/biome": "^2.5.9",
-		"@types/node": "^25.9.3",
-		"@vitest/coverage-v8": "^4.1.11",
-		"@vitest/ui": "^4.1.11",
+		"@biomejs/biome": "^2.5.15",
+		"@types/node": "^26.6.5",
+		"@vitest/coverage-v8": "^5.0.5",
+		"@vitest/ui": "^5.0.5",
 		"graphql": "^16.14.2",
-		"graphql-yoga": "^5.22.0",
+		"graphql-yoga": "^5.24.6",
 		"husky": "^9.1.7",
-		"tsup": "^8.5.1",
-		"tsx": "^4.23.12",
+		"tsup": "^9.0.0",
+		"tsx": "^4.23.15",
 		"typescript": "^6.0.3",
-		"vitest": "^4.1.11"
+		"vitest": "^5.0.5"
 	},
 	"scripts": {
 		"build": "tsup",
@@ -77,6 +82,7 @@
 		"test": "vitest run",
 		"test:coverage": "vitest run --coverage",
 		"test:ui": "vitest --ui",
-		"test:watch": "vitest"
+		"test:watch": "vitest",
+		"check:consumers": "tsc --noEmit --project tsconfig.consumers.json"
 	}
 }
