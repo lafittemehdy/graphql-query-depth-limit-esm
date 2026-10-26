@@ -6,6 +6,7 @@ on:
     branches: [master, main]
     paths:
       - examples/visualization/**
+      - src/operation-names.ts
       - .github/workflows/pages.yml
 
 permissions:

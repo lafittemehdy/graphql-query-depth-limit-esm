@@ -14,11 +14,11 @@ import {
 } from "./depth-engine.js";
 import {
 	createDepthResultRecord,
-	createOperationNameAllocator,
 	type NormalizedDepthLimitOptions,
 	normalizeDepthLimitArgs,
 	setDepthResult,
 } from "./depth-options.js";
+import { createOperationNameAllocator } from "./operation-names.js";
 import type { DepthCallback, DepthLimitFunction, DepthLimitOptions } from "./types.js";
 
 /**

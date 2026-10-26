@@ -15,7 +15,7 @@ import {
   parse,
   type SelectionSetNode,
 } from "graphql";
-import { createOperationNameAllocator } from "../../../../src/depth-options.js";
+import { createOperationNameAllocator } from "../../../../src/operation-names.js";
 import type { AnalysisResult, DepthOptions, DepthViolation, TreeNode } from "../types/analysis";
 
 /**
