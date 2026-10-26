@@ -43,6 +43,10 @@ jobs:
       - name: Check package consumers
         run: pnpm run check:consumers
 
+      - name: Check packed package
+        if: matrix.node-version == 24
+        run: pnpm run check:package
+
       - name: Audit dependencies
         run: pnpm audit
 

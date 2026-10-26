@@ -1,6 +1,10 @@
-import type { OperationDefinitionNode } from "graphql";
 import { isUnsafeRegExp } from "./ignore.js";
 import type { DepthCallback, DepthLimitOptions, IgnoreRule } from "./types.js";
+
+// Only names are needed, keeping this helper compatible with GraphQL 16/17 ASTs.
+interface NamedOperation {
+	readonly name?: { readonly value: string };
+}
 
 /** Valid values for the `directiveMode` option. */
 const DIRECTIVE_MODES = new Set<string>(["cap", "override"]);
@@ -159,8 +163,8 @@ export function createDepthResultRecord(): Record<string, number> {
  * - Generated names do not overwrite previous callback entries
  */
 export function createOperationNameAllocator(
-	operations: readonly OperationDefinitionNode[],
-): (operation: OperationDefinitionNode) => string {
+	operations: readonly NamedOperation[],
+): (operation: NamedOperation) => string {
 	const explicitNames = new Set<string>();
 	for (const operation of operations) {
 		if (operation.name?.value) {
@@ -172,7 +176,7 @@ export function createOperationNameAllocator(
 	const namedCounts = new Map<string, number>();
 	let anonymousCount = 0;
 
-	return (operation: OperationDefinitionNode): string => {
+	return (operation: NamedOperation): string => {
 		const explicitName = operation.name?.value;
 		if (explicitName) {
 			let suffix = namedCounts.get(explicitName) ?? 0;

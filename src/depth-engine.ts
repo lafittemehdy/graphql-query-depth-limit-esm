@@ -74,6 +74,7 @@ interface PathNode {
  * @internal
  */
 interface StackFrame {
+	selectionIndex: number;
 	/** Current depth at this point in traversal */
 	currentDepth: number;
 	/** Whether a `@depth` directive has already constrained this path */
@@ -173,6 +174,7 @@ function calculateDepth(
 
 	const stack: StackFrame[] = [
 		{
+			selectionIndex: 0,
 			currentDepth: 0,
 			hasDirectiveLimit: false,
 			ignoredFieldsOnPath: new Set<string>(),
@@ -185,223 +187,216 @@ function calculateDepth(
 	];
 
 	for (let frame = stack.pop(); frame !== undefined; frame = stack.pop()) {
-		if (!frame.node.selectionSet) {
-			continue;
+		const selections = frame.node.selectionSet?.selections;
+		if (!selections) continue;
+		const selection = selections[frame.selectionIndex++];
+		if (!selection) continue;
+		// Resume siblings after this selection's subtree, without retaining exhausted frames.
+		if (frame.selectionIndex < selections.length) stack.push(frame);
+		// Bound fragment expansion even when every branch stays below maxDepth.
+		if (++nodeCount > (config.maxNodes ?? 10_000)) {
+			throw new GraphQLError("Query exceeds maximum expanded node limit.", {
+				nodes: [selection],
+				extensions: {
+					code: ERROR_CODES.NODE_LIMIT_EXCEEDED,
+					maxNodes: config.maxNodes ?? 10_000,
+					nodeCount,
+				},
+			});
 		}
+		switch (selection.kind) {
+			case Kind.FIELD: {
+				const fieldName = selection.name.value;
+				const isIntrospectionField = fieldName.startsWith("__");
 
-		// Iterate in reverse and push directly so DFS still processes selections
-		// in the original query order without allocating an intermediate array.
-		for (
-			let selectionIndex = frame.node.selectionSet.selections.length - 1;
-			selectionIndex >= 0;
-			selectionIndex--
-		) {
-			const selection = frame.node.selectionSet.selections[selectionIndex];
-			if (!selection) {
-				continue;
-			}
-			// Bound fragment expansion even when every branch stays below maxDepth.
-			if (++nodeCount > (config.maxNodes ?? 10_000)) {
-				throw new GraphQLError("Query exceeds maximum expanded node limit.", {
-					nodes: [selection],
-					extensions: {
-						code: ERROR_CODES.NODE_LIMIT_EXCEEDED,
-						maxNodes: config.maxNodes ?? 10_000,
-						nodeCount,
-					},
-				});
-			}
-			switch (selection.kind) {
-				case Kind.FIELD: {
-					const fieldName = selection.name.value;
-					const isIntrospectionField = fieldName.startsWith("__");
+				// When introspection is fully ignored, always skip the subtree
+				// regardless of ignoreMode.
+				if (config.introspectionMode === "all" && isIntrospectionField) {
+					continue;
+				}
 
-					// When introspection is fully ignored, always skip the subtree
-					// regardless of ignoreMode.
-					if (config.introspectionMode === "all" && isIntrospectionField) {
-						continue;
-					}
+				// Leaf fields (no selectionSet) never contribute to depth,
+				// so skip them before running ignore rules to avoid unnecessary
+				// predicate evaluation and potential errors on irrelevant fields.
+				if (!selection.selectionSet) {
+					continue;
+				}
 
-					// Leaf fields (no selectionSet) never contribute to depth,
-					// so skip them before running ignore rules to avoid unnecessary
-					// predicate evaluation and potential errors on irrelevant fields.
-					if (!selection.selectionSet) {
-						continue;
-					}
+				const isIgnored = shouldIgnoreField(
+					fieldName,
+					config.ignore,
+					config.caseInsensitiveIgnore,
+					config.introspectionMode,
+				);
 
-					const isIgnored = shouldIgnoreField(
-						fieldName,
-						config.ignore,
-						config.caseInsensitiveIgnore,
-						config.introspectionMode,
-					);
+				if (isIgnored && config.ignoreMode === "skip") {
+					continue;
+				}
 
-					if (isIgnored && config.ignoreMode === "skip") {
-						continue;
-					}
+				// Resolve field type and directive depth
+				let fieldMaxDepth = frame.maxDepth;
+				let fieldType: GraphQLOutputType | undefined;
+				let hasDirectiveLimit = frame.hasDirectiveLimit;
 
-					// Resolve field type and directive depth
-					let fieldMaxDepth = frame.maxDepth;
-					let fieldType: GraphQLOutputType | undefined;
-					let hasDirectiveLimit = frame.hasDirectiveLimit;
+				if (schema && frame.parentType) {
+					const namedType = getNamedType(frame.parentType);
+					if (isObjectType(namedType) || isInterfaceType(namedType)) {
+						const fieldDef = namedType.getFields()[fieldName];
+						if (fieldDef) {
+							fieldType = fieldDef.type;
 
-					if (schema && frame.parentType) {
-						const namedType = getNamedType(frame.parentType);
-						if (isObjectType(namedType) || isInterfaceType(namedType)) {
-							const fieldDef = namedType.getFields()[fieldName];
-							if (fieldDef) {
-								fieldType = fieldDef.type;
+							// Defensively skip non-composite fields that erroneously
+							// have selections (normally caught by GraphQL's own
+							// validation rules, but guards against miscounted depth
+							// when this rule runs standalone or before other rules).
+							const resolvedType = getNamedType(fieldType);
+							if (resolvedType && !isCompositeType(resolvedType)) {
+								continue;
+							}
 
-								// Defensively skip non-composite fields that erroneously
-								// have selections (normally caught by GraphQL's own
-								// validation rules, but guards against miscounted depth
-								// when this rule runs standalone or before other rules).
-								const resolvedType = getNamedType(fieldType);
-								if (resolvedType && !isCompositeType(resolvedType)) {
-									continue;
-								}
-
-								if (config.useDirective) {
-									const resolved = resolveFieldDirectiveDepth(
-										caches,
-										config,
-										frame.currentDepth,
-										frame.maxDepth,
-										fieldDef,
-										frame.hasDirectiveLimit,
-										namedType,
-									);
-									fieldMaxDepth = resolved.maxDepth;
-									hasDirectiveLimit = resolved.hasDirectiveLimit;
-								}
+							if (config.useDirective) {
+								const resolved = resolveFieldDirectiveDepth(
+									caches,
+									config,
+									frame.currentDepth,
+									frame.maxDepth,
+									fieldDef,
+									frame.hasDirectiveLimit,
+									namedType,
+								);
+								fieldMaxDepth = resolved.maxDepth;
+								hasDirectiveLimit = resolved.hasDirectiveLimit;
 							}
 						}
 					}
+				}
 
-					// Determine whether this ignored field should still increment
-					// depth due to the recursion guard detecting repeated ignores
-					// on the same path. The key is type-aware (`Type:field`) when
-					// a schema is present so identically named fields on unrelated
-					// types are tracked independently. Without a schema, the key
-					// uses the field name alone, which may cause conservative
-					// over-counting on paths with same-named fields on different types.
-					let ignoredFieldsOnPath = frame.ignoredFieldsOnPath;
-					let effectivelyIgnored = isIgnored;
+				// Determine whether this ignored field should still increment
+				// depth due to the recursion guard detecting repeated ignores
+				// on the same path. The key is type-aware (`Type:field`) when
+				// a schema is present so identically named fields on unrelated
+				// types are tracked independently. Without a schema, the key
+				// uses the field name alone, which may cause conservative
+				// over-counting on paths with same-named fields on different types.
+				let ignoredFieldsOnPath = frame.ignoredFieldsOnPath;
+				let effectivelyIgnored = isIgnored;
 
-					if (isIgnored && config.limitIgnoredRecursion) {
-						const parentName = frame.parentType ? getNamedType(frame.parentType)?.name : undefined;
-						const recursionKey = parentName ? `${parentName}:${fieldName}` : fieldName;
+				if (isIgnored && config.limitIgnoredRecursion) {
+					const parentName = frame.parentType ? getNamedType(frame.parentType)?.name : undefined;
+					const recursionKey = parentName ? `${parentName}:${fieldName}` : fieldName;
 
-						if (ignoredFieldsOnPath.has(recursionKey)) {
-							// Same type:field was already ignored on this path - increment depth
-							effectivelyIgnored = false;
-						} else {
-							// First occurrence - track it for subsequent path segments
-							ignoredFieldsOnPath = new Set(ignoredFieldsOnPath);
-							ignoredFieldsOnPath.add(recursionKey);
-						}
+					if (ignoredFieldsOnPath.has(recursionKey)) {
+						// Same type:field was already ignored on this path - increment depth
+						effectivelyIgnored = false;
+					} else {
+						// First occurrence - track it for subsequent path segments
+						ignoredFieldsOnPath = new Set(ignoredFieldsOnPath);
+						ignoredFieldsOnPath.add(recursionKey);
 					}
+				}
 
-					const newDepth = effectivelyIgnored ? frame.currentDepth : frame.currentDepth + 1;
+				const newDepth = effectivelyIgnored ? frame.currentDepth : frame.currentDepth + 1;
 
-					// Use alias for path (matches the response shape clients see),
-					// while fieldName is used for schema lookups and ignore rules.
-					const pathSegment = selection.alias?.value ?? fieldName;
-					const fieldPath = pathPush(frame.path, pathSegment);
+				// Use alias for path (matches the response shape clients see),
+				// while fieldName is used for schema lookups and ignore rules.
+				const pathSegment = selection.alias?.value ?? fieldName;
+				const fieldPath = pathPush(frame.path, pathSegment);
 
-					// Track maximum depth found
-					if (newDepth > globalMaxDepth) {
-						globalMaxDepth = newDepth;
-					}
+				// Track maximum depth found
+				if (newDepth > globalMaxDepth) {
+					globalMaxDepth = newDepth;
+				}
 
-					// Check for violation
-					if (newDepth > fieldMaxDepth) {
-						const violation: DepthViolation = {
-							depth: newDepth,
-							maxDepth: fieldMaxDepth,
-							node: selection,
-							path: pathToArray(fieldPath),
-						};
-
-						if (config.shortCircuit) {
-							return { depth: newDepth, violation };
-						}
-
-						if (!deepestViolation || violation.depth > deepestViolation.depth) {
-							deepestViolation = violation;
-						}
-					}
-
-					stack.push({
-						currentDepth: newDepth,
-						hasDirectiveLimit,
-						ignoredFieldsOnPath,
+				// Check for violation
+				if (newDepth > fieldMaxDepth) {
+					const violation: DepthViolation = {
+						depth: newDepth,
 						maxDepth: fieldMaxDepth,
 						node: selection,
-						parentType: fieldType,
-						path: fieldPath,
-						visitedFragments: frame.visitedFragments,
-					});
-					break;
-				}
+						path: pathToArray(fieldPath),
+					};
 
-				case Kind.FRAGMENT_SPREAD: {
-					const fragmentName = selection.name.value;
-
-					// Check membership before copying to avoid wasted allocations
-					// when the fragment was already visited on this path.
-					if (frame.visitedFragments.has(fragmentName)) {
-						continue;
+					if (config.shortCircuit) {
+						return { depth: newDepth, violation };
 					}
 
-					const fragment = fragments.get(fragmentName);
-					if (!fragment) {
-						continue;
+					if (!deepestViolation || violation.depth > deepestViolation.depth) {
+						deepestViolation = violation;
 					}
-
-					// Create independent copy for per-path cycle detection
-					const fragmentVisited = new Set(frame.visitedFragments);
-					fragmentVisited.add(fragmentName);
-
-					const parentType = fragment.typeCondition
-						? resolveTypeCondition(fragment.typeCondition.name.value, schema, frame.parentType)
-						: frame.parentType;
-
-					stack.push({
-						currentDepth: frame.currentDepth,
-						hasDirectiveLimit: frame.hasDirectiveLimit,
-						ignoredFieldsOnPath: frame.ignoredFieldsOnPath,
-						maxDepth: frame.maxDepth,
-						node: fragment,
-						parentType,
-						path: frame.path,
-						visitedFragments: fragmentVisited,
-					});
-					break;
 				}
 
-				case Kind.INLINE_FRAGMENT: {
-					const parentType = selection.typeCondition
-						? resolveTypeCondition(selection.typeCondition.name.value, schema, frame.parentType)
-						: frame.parentType;
+				stack.push({
+					selectionIndex: 0,
+					currentDepth: newDepth,
+					hasDirectiveLimit,
+					ignoredFieldsOnPath,
+					maxDepth: fieldMaxDepth,
+					node: selection,
+					parentType: fieldType,
+					path: fieldPath,
+					visitedFragments: frame.visitedFragments,
+				});
+				break;
+			}
 
-					stack.push({
-						currentDepth: frame.currentDepth,
-						hasDirectiveLimit: frame.hasDirectiveLimit,
-						ignoredFieldsOnPath: frame.ignoredFieldsOnPath,
-						maxDepth: frame.maxDepth,
-						node: selection,
-						parentType,
-						path: frame.path,
-						visitedFragments: frame.visitedFragments,
-					});
-					break;
+			case Kind.FRAGMENT_SPREAD: {
+				const fragmentName = selection.name.value;
+
+				// Check membership before copying to avoid wasted allocations
+				// when the fragment was already visited on this path.
+				if (frame.visitedFragments.has(fragmentName)) {
+					continue;
 				}
 
-				default: {
-					const exhaustiveCheck: never = selection;
-					throwUnhandledSelectionKind(exhaustiveCheck);
+				const fragment = fragments.get(fragmentName);
+				if (!fragment) {
+					continue;
 				}
+
+				// Create independent copy for per-path cycle detection
+				const fragmentVisited = new Set(frame.visitedFragments);
+				fragmentVisited.add(fragmentName);
+
+				const parentType = fragment.typeCondition
+					? resolveTypeCondition(fragment.typeCondition.name.value, schema, frame.parentType)
+					: frame.parentType;
+
+				stack.push({
+					selectionIndex: 0,
+					currentDepth: frame.currentDepth,
+					hasDirectiveLimit: frame.hasDirectiveLimit,
+					ignoredFieldsOnPath: frame.ignoredFieldsOnPath,
+					maxDepth: frame.maxDepth,
+					node: fragment,
+					parentType,
+					path: frame.path,
+					visitedFragments: fragmentVisited,
+				});
+				break;
+			}
+
+			case Kind.INLINE_FRAGMENT: {
+				const parentType = selection.typeCondition
+					? resolveTypeCondition(selection.typeCondition.name.value, schema, frame.parentType)
+					: frame.parentType;
+
+				stack.push({
+					selectionIndex: 0,
+					currentDepth: frame.currentDepth,
+					hasDirectiveLimit: frame.hasDirectiveLimit,
+					ignoredFieldsOnPath: frame.ignoredFieldsOnPath,
+					maxDepth: frame.maxDepth,
+					node: selection,
+					parentType,
+					path: frame.path,
+					visitedFragments: frame.visitedFragments,
+				});
+				break;
+			}
+
+			default: {
+				const exhaustiveCheck: never = selection;
+				throwUnhandledSelectionKind(exhaustiveCheck);
 			}
 		}
 	}

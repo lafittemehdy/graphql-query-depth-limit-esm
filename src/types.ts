@@ -78,8 +78,8 @@ export interface DepthLimitOptions {
 	 *
 	 * **Note:** When set to `"all"`, introspection fields are always fully
 	 * skipped — including their subtree — even when `ignoreMode` is `"exclude"`.
-	 * This is intentional: `"all"` is a security hardening mode that completely
-	 * eliminates introspection fields from depth calculation.
+	 * This excludes those subtrees from depth protection; it does not disable
+	 * introspection.
 	 *
 	 * @default "typename"
 	 */
@@ -95,8 +95,9 @@ export interface DepthLimitOptions {
 	 * `User` has a `friends` field) effectively allows unbounded depth on that edge because
 	 * the depth increment is suppressed at every level of recursion. If the ignored field
 	 * appears in a self-referential chain, the depth counter never advances along that path.
-	 * Use `"skip"` instead if unbounded traversal is not intended, or combine `"exclude"`
-	 * with a `@depth` directive on the field to cap the subtree independently.
+	 * Enable `limitIgnoredRecursion` or remove the recursive field from `ignore`
+	 * to keep depth protection along that edge. `"skip"` removes all depth protection
+	 * for the subtree. The `maxNodes` budget still bounds expanded traversal.
 	 *
 	 * @default "exclude"
 	 */

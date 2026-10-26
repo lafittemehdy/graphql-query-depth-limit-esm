@@ -56,7 +56,7 @@ export function TreeView({ maxDepth, result, revealDepth }: TreeViewProps) {
       <div className="tree-container" role="tree">
         {result.tree.map((root) => (
           <TreeNodeView
-            key={root.path.join(".")}
+            key={root.fieldName}
             maxDepth={maxDepth}
             node={root}
             revealDepth={revealDepth}

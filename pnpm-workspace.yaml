@@ -1,14 +1,11 @@
 packages:
   - .
 allowBuilds:
-  '@apollo/protobufjs': true
+  "@apollo/protobufjs": true
   esbuild: true
-minimumReleaseAgeExclude:
-  - "@graphql-tools/utils@13.0.2"
 overrides:
-  "@graphql-tools/utils": "13.0.2"
   "@fastify/busboy": "3.2.3"
   "qs": "6.16.1"
   "source-map-js": "1.2.2"
-  "body-parser": "2.3.0"
+  "body-parser": "2.4.0"
   "esbuild": "0.28.2"

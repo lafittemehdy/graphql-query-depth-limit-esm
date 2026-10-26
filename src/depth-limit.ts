@@ -99,111 +99,121 @@ function createValidationRule(
 	const shortCircuit = options?.shortCircuit ?? callback == null;
 
 	return function depthLimitValidationRule(context: ValidationContext): ASTVisitor {
-		const caches = createTraversalCaches();
-		const document = context.getDocument();
-		const depths: Record<string, number> | undefined = callback
-			? createDepthResultRecord()
-			: undefined;
-		const { fragments, operations } = extractDefinitions(document.definitions);
-		const schema = context.getSchema() ?? undefined;
-		// By design: when useDirective is true but no schema is available,
-		// directives silently fall back to the global maxDepth. This is not a
-		// "silent failure" - directives cannot be resolved without type info,
-		// so the global limit is the correct and safe default. Emitting an
-		// error here would penalize valid schema-less contexts (e.g., custom
-		// ValidationContext wrappers) where the user intentionally omits the
-		// schema. See DepthLimitOptions.useDirective JSDoc for documentation.
-		const useDirective = Boolean(schema) && (options?.useDirective ?? false);
+		return {
+			// Report inside the visitor so graphql-js can catch its maxErrors abort.
+			Document() {
+				const caches = createTraversalCaches();
+				const document = context.getDocument();
+				const depths: Record<string, number> | undefined = callback
+					? createDepthResultRecord()
+					: undefined;
+				const { fragments, operations } = extractDefinitions(document.definitions);
+				const schema = context.getSchema() ?? undefined;
+				// By design: when useDirective is true but no schema is available,
+				// directives silently fall back to the global maxDepth. This is not a
+				// "silent failure" - directives cannot be resolved without type info,
+				// so the global limit is the correct and safe default. Emitting an
+				// error here would penalize valid schema-less contexts (e.g., custom
+				// ValidationContext wrappers) where the user intentionally omits the
+				// schema. See DepthLimitOptions.useDirective JSDoc for documentation.
+				const useDirective = Boolean(schema) && (options?.useDirective ?? false);
 
-		const nextOperationName = createOperationNameAllocator(operations);
+				const nextOperationName = createOperationNameAllocator(operations);
 
-		const config: TraversalConfig = {
-			maxNodes: options?.maxNodes,
-			caseInsensitiveIgnore: options?.caseInsensitiveIgnore ?? false,
-			directiveMode: options?.directiveMode ?? "cap",
-			ignore: options?.ignore,
-			ignoreMode: options?.ignoreMode ?? "exclude",
-			introspectionMode: options?.ignoreIntrospection ?? "typename",
-			limitIgnoredRecursion: options?.limitIgnoredRecursion ?? false,
-			shortCircuit,
-			useDirective,
-		};
-
-		const rootTypeMap = schema
-			? {
-					mutation: schema.getMutationType() ?? undefined,
-					query: schema.getQueryType() ?? undefined,
-					subscription: schema.getSubscriptionType() ?? undefined,
-				}
-			: {
-					mutation: undefined,
-					query: undefined,
-					subscription: undefined,
+				const config: TraversalConfig = {
+					maxNodes: options?.maxNodes,
+					caseInsensitiveIgnore: options?.caseInsensitiveIgnore ?? false,
+					directiveMode: options?.directiveMode ?? "cap",
+					ignore: options?.ignore,
+					ignoreMode: options?.ignoreMode ?? "exclude",
+					introspectionMode: options?.ignoreIntrospection ?? "typename",
+					limitIgnoredRecursion: options?.limitIgnoredRecursion ?? false,
+					shortCircuit,
+					useDirective,
 				};
 
-		for (const operation of operations) {
-			const operationName = nextOperationName(operation);
-			const rootType = rootTypeMap[operation.operation];
+				const rootTypeMap = schema
+					? {
+							mutation: schema.getMutationType() ?? undefined,
+							query: schema.getQueryType() ?? undefined,
+							subscription: schema.getSubscriptionType() ?? undefined,
+						}
+					: {
+							mutation: undefined,
+							query: undefined,
+							subscription: undefined,
+						};
 
-			let result: ReturnType<typeof calculateDepth>;
-			try {
-				result = calculateDepth(caches, config, fragments, maxDepth, operation, rootType, schema);
-			} catch (error) {
-				if (error instanceof GraphQLError) {
-					context.reportError(error);
-					continue;
+				for (const operation of operations) {
+					const operationName = nextOperationName(operation);
+					const rootType = rootTypeMap[operation.operation];
+
+					let result: ReturnType<typeof calculateDepth>;
+					try {
+						result = calculateDepth(
+							caches,
+							config,
+							fragments,
+							maxDepth,
+							operation,
+							rootType,
+							schema,
+						);
+					} catch (error) {
+						if (error instanceof GraphQLError) {
+							context.reportError(error);
+							continue;
+						}
+						if (error instanceof Error && error.name === "IgnoreRuleError") {
+							context.reportError(
+								new GraphQLError(error.message, {
+									extensions: {
+										code: ERROR_CODES.IGNORE_RULE_ERROR,
+									},
+									nodes: [operation],
+									originalError: error,
+								}),
+							);
+							continue;
+						}
+						throw error;
+					}
+
+					if (depths) {
+						setDepthResult(depths, operationName, result.depth);
+					}
+
+					if (result.violation) {
+						const depthValue = result.violation.depth;
+						const depthLabel = shortCircuit ? `at least ${depthValue}` : `${depthValue}`;
+						const violationPath = result.violation.path;
+						const pathSuffix = violationPath.length > 0 ? ` (at ${violationPath.join(".")})` : "";
+
+						context.reportError(
+							new GraphQLError(
+								`'${operationName}' has depth ${depthLabel} which exceeds maximum allowed depth of ${result.violation.maxDepth}${pathSuffix}`,
+								{
+									extensions: {
+										code: ERROR_CODES.QUERY_TOO_DEEP,
+										depth: depthValue,
+										maxDepth: result.violation.maxDepth,
+										path: violationPath,
+										shortCircuit,
+									},
+									nodes: result.violation.node ? [operation, result.violation.node] : [operation],
+								},
+							),
+						);
+					}
 				}
-				if (error instanceof Error && error.name === "IgnoreRuleError") {
-					context.reportError(
-						new GraphQLError(error.message, {
-							extensions: {
-								code: ERROR_CODES.IGNORE_RULE_ERROR,
-							},
-							nodes: [operation],
-							originalError: error,
-						}),
-					);
-					continue;
+
+				if (callback && depths) {
+					// Keep callback payload as a plain object for compatibility.
+					callback({ ...depths });
 				}
-				throw error;
-			}
 
-			if (depths) {
-				setDepthResult(depths, operationName, result.depth);
-			}
-
-			if (result.violation) {
-				const depthValue = result.violation.depth;
-				const depthLabel = shortCircuit ? `at least ${depthValue}` : `${depthValue}`;
-				const violationPath = result.violation.path;
-				const pathSuffix = violationPath.length > 0 ? ` (at ${violationPath.join(".")})` : "";
-
-				context.reportError(
-					new GraphQLError(
-						`'${operationName}' has depth ${depthLabel} which exceeds maximum allowed depth of ${result.violation.maxDepth}${pathSuffix}`,
-						{
-							extensions: {
-								code: ERROR_CODES.QUERY_TOO_DEEP,
-								depth: depthValue,
-								maxDepth: result.violation.maxDepth,
-								path: violationPath,
-								shortCircuit,
-							},
-							nodes: result.violation.node ? [operation, result.violation.node] : [operation],
-						},
-					),
-				);
-			}
-		}
-
-		if (callback && depths) {
-			// Keep callback payload as a plain object for compatibility.
-			callback({ ...depths });
-		}
-
-		// All depth validation is performed eagerly above because fragment
-		// resolution requires the full document upfront. Nothing remains
-		// for the visitor traversal phase.
-		return {};
+				return false;
+			},
+		};
 	};
 }

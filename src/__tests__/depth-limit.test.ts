@@ -6,6 +6,7 @@ import {
 	GraphQLString,
 	parse,
 	validate,
+	visit,
 } from "graphql";
 import { describe, expect, it, vi } from "vitest";
 import { depthLimit } from "../depth-limit.js";
@@ -693,7 +694,7 @@ describe("depthLimit", () => {
 			const { context, reported } = createMockContext(query);
 
 			const rule = depthLimit(0);
-			rule(context);
+			visit(query, rule(context));
 
 			expect(reported).toHaveLength(1);
 			expect(reported[0]?.message).toContain("exceeds maximum allowed depth of 0");
@@ -722,7 +723,7 @@ describe("depthLimit", () => {
 			const { context, reported } = createMockContext(query, schema);
 
 			const rule = depthLimit(10, undefined, callback);
-			rule(context);
+			visit(query, rule(context));
 
 			// The ...Missing spread is silently skipped (graphql-js would catch this
 			// via its own validation rules). Depth is 1 (just `user`), since the
@@ -740,7 +741,7 @@ describe("depthLimit", () => {
 			const { context } = createMockContext(query, schema);
 
 			const rule = depthLimit(10, undefined, callback);
-			rule(context);
+			visit(query, rule(context));
 
 			expect(callback).toHaveBeenCalledOnce();
 			expect(callback).toHaveBeenCalledWith({ "[anonymous]": 1, "[anonymous:2]": 2 });
@@ -1682,7 +1683,7 @@ describe("depthLimit", () => {
 			const { context } = createMockContext(query, schema);
 
 			const rule = depthLimit(10, undefined, callback);
-			rule(context);
+			visit(query, rule(context));
 
 			expect(callback).toHaveBeenCalledOnce();
 			const depths = callback.mock.calls[0]?.[0] as Record<string, number>;
@@ -1702,7 +1703,7 @@ describe("depthLimit", () => {
 			const { context } = createMockContext(query, schema);
 
 			const rule = depthLimit(10, undefined, callback);
-			rule(context);
+			visit(query, rule(context));
 
 			expect(callback).toHaveBeenCalledOnce();
 			const depths = callback.mock.calls[0]?.[0] as Record<string, number>;
@@ -1731,7 +1732,7 @@ describe("depthLimit", () => {
 			const { context, reported } = createMockContext(query, schema);
 
 			const rule = depthLimit(10, { ignore: [throwingRule] }, callback);
-			rule(context);
+			visit(query, rule(context));
 
 			// Operation A should report IgnoreRuleError
 			expect(reported).toHaveLength(1);
@@ -1747,6 +1748,7 @@ describe("depthLimit", () => {
 	describe("unexpected engine errors", () => {
 		it("rethrows non-IgnoreRuleError exceptions", () => {
 			const malformedDocument = {
+				kind: "Document",
 				definitions: [
 					{
 						kind: "OperationDefinition",
@@ -1760,7 +1762,9 @@ describe("depthLimit", () => {
 			const { context } = createMockContext(malformedDocument as never, schema);
 
 			const rule = depthLimit(10);
-			expect(() => rule(context)).toThrow("Unhandled selection kind: BROKEN_KIND");
+			expect(() => visit(malformedDocument as never, rule(context))).toThrow(
+				"Unhandled selection kind: BROKEN_KIND",
+			);
 		});
 	});
 
@@ -1859,7 +1863,7 @@ describe("depthLimit", () => {
 				{ ignore: ["friends"], ignoreMode: "exclude", limitIgnoredRecursion: true },
 				callback,
 			);
-			rule(context);
+			visit(query, rule(context));
 
 			// Without schema: key is just "friends" (no type prefix)
 			// user(1) → friends(ignored, 1) → friends(repeated, 2) → friends(repeated, 3) → name = 3
@@ -1905,7 +1909,7 @@ describe("depthLimit", () => {
 			const { context, reported } = createMockContext(query);
 
 			const rule = depthLimit(2, { useDirective: true });
-			rule(context);
+			visit(query, rule(context));
 
 			// No schema → useDirective has no effect → global limit 2 applies
 			expect(reported).toHaveLength(1);

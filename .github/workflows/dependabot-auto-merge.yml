@@ -5,6 +5,7 @@ on:
     types: [opened, reopened, synchronize, ready_for_review]
 
 permissions:
+  actions: read
   contents: read
   pull-requests: write
 
@@ -12,6 +13,7 @@ jobs:
   auto-merge:
     name: Enable auto-merge for Dependabot PRs
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     if: github.event.pull_request.user.login == 'dependabot[bot]' && github.event.pull_request.draft == false
 
     steps:
@@ -30,9 +32,24 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Enable auto-merge for minor and patch updates
-        if: steps.metadata.outputs.update-type != 'version-update:semver-major'
-        run: gh pr merge --auto --squash "$PR_URL"
+      - name: Wait for CI and merge minor or patch updates
+        if: steps.metadata.outputs.update-type == 'version-update:semver-minor' || steps.metadata.outputs.update-type == 'version-update:semver-patch'
+        run: |
+          deadline=$((SECONDS + 1200))
+          while [ "$SECONDS" -lt "$deadline" ]; do
+            run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow ci.yml \
+              --event pull_request --commit "$PR_HEAD_SHA" --limit 1 \
+              --json databaseId --jq '.[0].databaseId // empty')
+            if [ -n "$run_id" ]; then
+              gh run watch "$run_id" --repo "$GITHUB_REPOSITORY" --interval 10 --exit-status
+              gh pr merge --auto --squash --match-head-commit "$PR_HEAD_SHA" "$PR_URL"
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "::error::No CI run found for the captured PR head."
+          exit 1
         env:
           GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}

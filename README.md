@@ -34,7 +34,7 @@ Preset queries (simple lookups through deeply nested attacks), an AST tree viewe
 - **Interface directive inheritance** — `@depth` directives on interface fields apply to all implementors
 - **Short-circuit traversal** — stops immediately on first violation when no callback is provided
 - **Validation rule** — integrates directly with `graphql`'s `validate()` function
-- **Zero runtime dependencies** — only `graphql ^16` as a peer dependency
+- **Zero runtime dependencies** — only `graphql ^16 || ^17` as a peer dependency
 
 ## Installation
 
@@ -57,8 +57,8 @@ import { specifiedRules, validate } from "graphql";
 import { depthLimit } from "graphql-query-depth-limit-esm";
 
 const errors = validate(schema, document, [
-  ...specifiedRules,
-  depthLimit(7, { useDirective: true }),
+	...specifiedRules,
+	depthLimit(7, { useDirective: true }),
 ]);
 ```
 
@@ -75,24 +75,24 @@ Include [`depthDirectiveTypeDefs`](#depthdirectivetypedefs) in your schema to de
 # directive @depth(max: Int!) on FIELD_DEFINITION
 
 type User {
-  name: String!
-  profile: Profile!
+	name: String!
+	profile: Profile!
 
-  # Self-referential — allow up to 3 levels of nesting
-  friends: [User!]! @depth(max: 3)
+	# Self-referential — allow up to 3 levels of nesting
+	friends: [User!]! @depth(max: 3)
 }
 
 type Post {
-  title: String!
-  author: User!
+	title: String!
+	author: User!
 
-  # Recursive comments — allow up to 5 levels deep
-  comments: [Comment!]! @depth(max: 5)
+	# Recursive comments — allow up to 5 levels deep
+	comments: [Comment!]! @depth(max: 5)
 }
 
 type Comment {
-  text: String!
-  replies: [Comment!]! @depth(max: 4)
+	text: String!
+	replies: [Comment!]! @depth(max: 4)
 }
 ```
 
@@ -104,14 +104,14 @@ import { depthDirectiveTypeDefs, depthLimit } from "graphql-query-depth-limit-es
 import { specifiedRules, validate } from "graphql";
 
 const schema = makeExecutableSchema({
-  typeDefs: [depthDirectiveTypeDefs, yourTypeDefs],
-  resolvers,
+	typeDefs: [depthDirectiveTypeDefs, yourTypeDefs],
+	resolvers,
 });
 
 // Global max of 7 — @depth directives can tighten but never exceed this limit
 const errors = validate(schema, document, [
-  ...specifiedRules,
-  depthLimit(7, { useDirective: true }),
+	...specifiedRules,
+	depthLimit(7, { useDirective: true }),
 ]);
 ```
 
@@ -121,14 +121,14 @@ When multiple `@depth` directives appear along a query path, the effective limit
 
 ```graphql
 type Post {
-  # 3 levels from here (absolute max = currentDepth + 3)
-  comments: [Comment] @depth(max: 3)
+	# 3 levels from here (absolute max = currentDepth + 3)
+	comments: [Comment] @depth(max: 3)
 }
 
 type Comment {
-  text: String
-  # Wants 5 levels, but capped by the ancestor's limit
-  replies: [Comment] @depth(max: 5)
+	text: String
+	# Wants 5 levels, but capped by the ancestor's limit
+	replies: [Comment] @depth(max: 5)
 }
 ```
 
@@ -142,12 +142,12 @@ When a `@depth` directive is placed on an interface field, it applies to all con
 
 ```graphql
 interface Node {
-  children: [Node!]! @depth(max: 3)
+	children: [Node!]! @depth(max: 3)
 }
 
 type TreeNode implements Node {
-  children: [Node!]!  # Inherits @depth(max: 3) from Node interface
-  label: String!
+	children: [Node!]! # Inherits @depth(max: 3) from Node interface
+	label: String!
 }
 ```
 
@@ -183,8 +183,8 @@ import { ApolloServer } from "@apollo/server";
 import { depthLimit } from "graphql-query-depth-limit-esm";
 
 const server = new ApolloServer({
-  schema,
-  validationRules: [depthLimit(7, { useDirective: true })],
+	schema,
+	validationRules: [depthLimit(7, { useDirective: true })],
 });
 ```
 
@@ -195,14 +195,14 @@ import { createYoga } from "graphql-yoga";
 import { depthLimit } from "graphql-query-depth-limit-esm";
 
 const yoga = createYoga({
-  schema,
-  plugins: [
-    {
-      onValidate({ addValidationRule }) {
-        addValidationRule(depthLimit(7, { useDirective: true }));
-      },
-    },
-  ],
+	schema,
+	plugins: [
+		{
+			onValidate({ addValidationRule }) {
+				addValidationRule(depthLimit(7, { useDirective: true }));
+			},
+		},
+	],
 });
 ```
 
@@ -212,16 +212,16 @@ Skip specific fields during depth calculation using strings, regular expressions
 
 ```ts
 const rule = depthLimit(5, {
-  ignore: [
-    // Exact field name match
-    "metadata",
+	ignore: [
+		// Exact field name match
+		"metadata",
 
-    // Regular expression pattern
-    /.*Connection$/,
+		// Regular expression pattern
+		/.*Connection$/,
 
-    // Custom function
-    (fieldName) => fieldName.startsWith("internal"),
-  ],
+		// Custom function
+		(fieldName) => fieldName.startsWith("internal"),
+	],
 });
 ```
 
@@ -239,19 +239,19 @@ const rule = depthLimit(5, { ignore: ["metadata"], ignoreMode: "exclude" });
 const rule = depthLimit(5, { ignore: ["metadata"], ignoreMode: "skip" });
 ```
 
-With `"exclude"`, the ignored field does not increment the depth counter, but its children are still traversed and subject to depth limits. This prevents attackers from nesting arbitrarily deep queries under ignored composite fields.
+With `"exclude"`, the ignored field does not increment the depth counter, but its children are still traversed and subject to depth limits. Non-ignored composite children still increment depth.
 
-If the ignored field is recursive (for example, `friends -> friends`), depth can remain flat along that edge because the ignored field keeps suppressing increments. To prevent this, enable [`limitIgnoredRecursion`](#depthlimitoptions), use `ignoreMode: "skip"`, or cap the field with `@depth`.
+If the ignored field is recursive (for example, `friends -> friends`), depth can remain flat along that edge because the ignored field keeps suppressing increments. To retain depth protection along that edge, enable [`limitIgnoredRecursion`](#depthlimitoptions) or remove the recursive field from `ignore`. The `maxNodes` budget still limits expanded traversal. `ignoreMode: "skip"` removes the entire subtree from depth protection.
 
 ### Recursive Ignore Guard
 
-Enable [`limitIgnoredRecursion`](#depthlimitoptions) to prevent unbounded traversal when using `ignoreMode: "exclude"` on recursive fields:
+Enable [`limitIgnoredRecursion`](#depthlimitoptions) to count repeated ignored fields when using `ignoreMode: "exclude"` on recursive fields:
 
 ```ts
 const rule = depthLimit(10, {
-  ignore: ["friends"],
-  ignoreMode: "exclude",
-  limitIgnoredRecursion: true,
+	ignore: ["friends"],
+	ignoreMode: "exclude",
+	limitIgnoredRecursion: true,
 });
 ```
 
@@ -272,7 +272,7 @@ const exactRule = depthLimit(5, { shortCircuit: false });
 
 // Force early bailout even with a callback
 const fastRule = depthLimit(5, { shortCircuit: true }, (depths) => {
-  console.log(depths);
+	console.log(depths);
 });
 ```
 
@@ -282,8 +282,8 @@ Enable [`caseInsensitiveIgnore`](#depthlimitoptions) to match string ignore rule
 
 ```ts
 const rule = depthLimit(5, {
-  caseInsensitiveIgnore: true,
-  ignore: ["metadata"], // Matches "metadata", "Metadata", "METADATA", etc.
+	caseInsensitiveIgnore: true,
+	ignore: ["metadata"], // Matches "metadata", "Metadata", "METADATA", etc.
 });
 ```
 
@@ -291,7 +291,7 @@ const rule = depthLimit(5, {
 
 By default, only `__typename` is ignored during depth calculation. The `__schema` and `__type` fields are **counted** toward depth, protecting against deeply nested introspection queries.
 
-Note that scalar introspection fields like `__typename` never increment depth on their own (only composite fields with nested selections do). The `ignoreIntrospection` setting controls whether these fields are _recognized as ignored_, which matters for the `ignoreMode` behavior when they appear within composite selections.
+Scalar fields such as `__typename` never increment depth, including in `"none"` mode. The introspection option affects composite introspection fields such as `__schema` and `__type`.
 
 ```ts
 // Default: only __typename is ignored
@@ -300,11 +300,11 @@ const rule = depthLimit(10);
 // Ignore all introspection fields and skip their entire subtree
 const rule = depthLimit(10, { ignoreIntrospection: "all" });
 
-// Count all fields toward depth, including __typename
+// Count composite introspection fields toward depth
 const rule = depthLimit(10, { ignoreIntrospection: "none" });
 ```
 
-> **Note:** When `ignoreIntrospection: "all"` is set, introspection fields and their entire subtree are always skipped — regardless of `ignoreMode`. This is a security hardening mode that completely eliminates introspection from depth calculation.
+> **Note:** When `ignoreIntrospection: "all"` is set, introspection fields and their entire subtree are always skipped — regardless of `ignoreMode`. Those subtrees bypass depth protection. This option does not disable introspection.
 
 ### Depth Callback
 
@@ -312,10 +312,10 @@ Monitor query depths with an optional [`callback`](#depthcallback) that receives
 
 ```ts
 const rule = depthLimit(10, {}, (depths) => {
-  // { "GetUser": 3, "ListPosts": 5, "[anonymous]": 2 }
-  for (const [operation, depth] of Object.entries(depths)) {
-    console.log(`Operation "${operation}" has depth ${depth}`);
-  }
+	// { "GetUser": 3, "ListPosts": 5, "[anonymous]": 2 }
+	for (const [operation, depth] of Object.entries(depths)) {
+		console.log(`Operation "${operation}" has depth ${depth}`);
+	}
 });
 ```
 
@@ -323,7 +323,7 @@ If you do not need options, you can pass the callback as the second argument:
 
 ```ts
 const rule = depthLimit(10, (depths) => {
-  console.log(depths);
+	console.log(depths);
 });
 ```
 
@@ -337,11 +337,11 @@ Creates a GraphQL validation rule that limits query depth.
 
 #### Parameters
 
-| Parameter | Type | Required | Description |
-|---|---|---|---|
-| `maxDepth` | `number` | Yes | Maximum allowed depth (non-negative integer) |
-| `options` | [`DepthLimitOptions`](#depthlimitoptions) | No | Configuration options |
-| `callback` | [`DepthCallback`](#depthcallback) | No | Called with per-operation depth results |
+| Parameter  | Type                                      | Required | Description                                  |
+| ---------- | ----------------------------------------- | -------- | -------------------------------------------- |
+| `maxDepth` | `number`                                  | Yes      | Maximum allowed depth (non-negative integer) |
+| `options`  | [`DepthLimitOptions`](#depthlimitoptions) | No       | Configuration options                        |
+| `callback` | [`DepthCallback`](#depthcallback)         | No       | Called with per-operation depth results      |
 
 #### Returns
 
@@ -362,16 +362,17 @@ directive @depth(max: Int!) on FIELD_DEFINITION
 
 ### `DepthLimitOptions`
 
-| Property | Type | Default | Description |
-|---|---|---|---|
-| `caseInsensitiveIgnore` | `boolean` | `false` | Case-insensitive matching for string ignore rules |
-| `directiveMode` | [`DirectiveMode`](#directivemode) | `"cap"` | Controls how `@depth` directives interact with the global `maxDepth` |
-| `ignore` | [`IgnoreRule \| IgnoreRule[]`](#ignorerule) | `undefined` | Fields to skip during depth calculation |
-| `ignoreIntrospection` | [`IntrospectionMode`](#introspectionmode) | `"typename"` | Controls which introspection fields are ignored |
-| `ignoreMode` | [`IgnoreMode`](#ignoremode) | `"exclude"` | Controls whether ignored fields skip their entire subtree or only the depth increment |
-| `limitIgnoredRecursion` | `boolean` | `false` | In `ignoreMode: "exclude"`, increments depth for repeated ignored fields on the same path to prevent unbounded recursion |
-| `shortCircuit` | `boolean` | `undefined` (auto) | Auto: `true` without callback, `false` with callback. Set explicitly to force early bailout or full traversal |
-| `useDirective` | `boolean` | `false` | Read `@depth(max: Int!)` directives from field definitions. Requires a schema in validation context; without one, directive resolution falls back to the global `maxDepth`. |
+| Property                | Type                                        | Default            | Description                                                                                                                                                                 |
+| ----------------------- | ------------------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `caseInsensitiveIgnore` | `boolean`                                   | `false`            | Case-insensitive matching for string ignore rules                                                                                                                           |
+| `directiveMode`         | [`DirectiveMode`](#directivemode)           | `"cap"`            | Controls how `@depth` directives interact with the global `maxDepth`                                                                                                        |
+| `ignore`                | [`IgnoreRule \| IgnoreRule[]`](#ignorerule) | `undefined`        | Fields to skip during depth calculation                                                                                                                                     |
+| `ignoreIntrospection`   | [`IntrospectionMode`](#introspectionmode)   | `"typename"`       | Controls which introspection fields are ignored                                                                                                                             |
+| `ignoreMode`            | [`IgnoreMode`](#ignoremode)                 | `"exclude"`        | Controls whether ignored fields skip their entire subtree or only the depth increment                                                                                       |
+| `limitIgnoredRecursion` | `boolean`                                   | `false`            | In `ignoreMode: "exclude"`, increments depth for repeated ignored fields on the same path to prevent unbounded recursion                                                    |
+| `maxNodes`              | `number`                                    | `10000`            | Positive safe integer limiting expanded selection nodes per operation, including leaf fields and repeated fragment spreads.                                                 |
+| `shortCircuit`          | `boolean`                                   | `undefined` (auto) | Auto: `true` without callback, `false` with callback. Set explicitly to force early bailout or full traversal                                                               |
+| `useDirective`          | `boolean`                                   | `false`            | Read `@depth(max: Int!)` directives from field definitions. Requires a schema in validation context; without one, directive resolution falls back to the global `maxDepth`. |
 
 ### `DirectiveMode`
 
@@ -417,12 +418,14 @@ type DepthCallback = (depths: Record<string, number>) => void;
 
 ```ts
 const ERROR_CODES = {
-  IGNORE_RULE_ERROR: "IGNORE_RULE_ERROR",
-  QUERY_TOO_DEEP: "QUERY_TOO_DEEP",
+	IGNORE_RULE_ERROR: "IGNORE_RULE_ERROR",
+	NODE_LIMIT_EXCEEDED: "NODE_LIMIT_EXCEEDED",
+	QUERY_TOO_DEEP: "QUERY_TOO_DEEP",
 } as const;
 ```
 
 - `QUERY_TOO_DEEP`: query depth exceeded the allowed limit
+- `NODE_LIMIT_EXCEEDED`: expanded traversal exceeded `maxNodes`; extensions include `maxNodes` and `nodeCount`
 - `IGNORE_RULE_ERROR`: a user-provided ignore rule (`RegExp` or function) threw at validation time
 
 ## Error Extensions
@@ -431,33 +434,33 @@ Depth violations include structured extensions for programmatic access:
 
 ```json
 {
-  "message": "'GetUser' has depth 8 which exceeds maximum allowed depth of 5 (at user.friends.friends)",
-  "extensions": {
-    "code": "QUERY_TOO_DEEP",
-    "depth": 8,
-    "maxDepth": 5,
-    "path": ["user", "friends", "friends"],
-    "shortCircuit": false
-  }
+	"message": "'GetUser' has depth 8 which exceeds maximum allowed depth of 5 (at user.friends.friends)",
+	"extensions": {
+		"code": "QUERY_TOO_DEEP",
+		"depth": 8,
+		"maxDepth": 5,
+		"path": ["user", "friends", "friends"],
+		"shortCircuit": false
+	}
 }
 ```
 
-| Field | Type | Description |
-|---|---|---|
-| `code` | `string` | Always `"QUERY_TOO_DEEP"` |
-| `depth` | `number` | The query's calculated depth. If `shortCircuit` is `true`, this is the depth where the violation was detected, which may not be the absolute maximum depth. |
-| `maxDepth` | `number` | The maximum allowed depth that was exceeded |
-| `path` | `string[]` | Field path from the operation root to the violation point (uses aliases when present) |
-| `shortCircuit` | `boolean` | Whether the engine short-circuited. If `true`, `depth` is a lower bound ("at least N"), including when `shortCircuit: true` is explicitly forced with a callback. |
+| Field          | Type       | Description                                                                                                                                                       |
+| -------------- | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `code`         | `string`   | Always `"QUERY_TOO_DEEP"`                                                                                                                                         |
+| `depth`        | `number`   | The query's calculated depth. If `shortCircuit` is `true`, this is the depth where the violation was detected, which may not be the absolute maximum depth.       |
+| `maxDepth`     | `number`   | The maximum allowed depth that was exceeded                                                                                                                       |
+| `path`         | `string[]` | Field path from the operation root to the violation point (uses aliases when present)                                                                             |
+| `shortCircuit` | `boolean`  | Whether the engine short-circuited. If `true`, `depth` is a lower bound ("at least N"), including when `shortCircuit: true` is explicitly forced with a callback. |
 
 If an ignore rule throws, validation reports:
 
 ```json
 {
-  "message": "Ignore rule function threw for field \"friends\": boom",
-  "extensions": {
-    "code": "IGNORE_RULE_ERROR"
-  }
+	"message": "Ignore rule function threw for field \"friends\": boom",
+	"extensions": {
+		"code": "IGNORE_RULE_ERROR"
+	}
 }
 ```
 
@@ -476,36 +479,44 @@ If an ignore rule throws, validation reports:
 ```graphql
 # Depth: 0
 query {
-  # Depth: 1
-  user {
-    name        # Depth: 1 (scalar, no increment)
-    # Depth: 2
-    posts {
-      title     # Depth: 2 (scalar, no increment)
-      # Depth: 3
-      comments {
-        text    # Depth: 3 (scalar, no increment)
-      }
-    }
-  }
+	# Depth: 1
+	user {
+		name # Depth: 1 (scalar, no increment)
+		# Depth: 2
+		posts {
+			title # Depth: 2 (scalar, no increment)
+			# Depth: 3
+			comments {
+				text # Depth: 3 (scalar, no increment)
+			}
+		}
+	}
 }
 # Maximum depth: 3
 ```
 
+Queries that exceed the node budget are rejected even if their depth is within the limit. Operations stopped by node-limit or ignore-rule errors are omitted from the callback payload. If GraphQL aborts this rule at its `maxErrors` cap, the callback is not called.
+
 ## Performance
 
-The depth engine uses **iterative DFS** (not recursion) to prevent stack overflow on adversarial queries and to keep traversal overhead constant regardless of nesting depth.
+The depth engine uses **iterative DFS** (not recursion) to prevent stack overflow on adversarial queries and to bound JavaScript call-stack usage during depth analysis.
 
-| Characteristic | Detail |
-|---|---|
-| **Algorithm** | Iterative depth-first search with explicit stack |
-| **Time complexity** | O(n) where n = total selection nodes in the query |
-| **Short-circuit** | Stops on first violation when no callback is provided |
-| **Fragment cycles** | Detected per-path with minimal Set allocations |
-| **Stack safety** | No recursion — immune to stack overflow on deep queries |
-| **Runtime dependencies** | Zero — only `graphql` as a peer dependency |
+| Characteristic           | Detail                                                                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Algorithm**            | Iterative depth-first search with explicit stack                                                                                    |
+| **Time complexity**      | O(n) selection visits, where n includes repeated fragment expansion; per-path fragment and recursion tracking adds copying overhead |
+| **Short-circuit**        | Stops on first violation when no callback is provided                                                                               |
+| **Fragment cycles**      | Detected per-path with minimal Set allocations                                                                                      |
+| **Stack safety**         | No recursion — immune to stack overflow on deep queries                                                                             |
+| **Runtime dependencies** | Zero — only `graphql` as a peer dependency                                                                                          |
 
 Typical validation completes in **sub-millisecond** time for standard queries (< 50 fields). Even adversarial queries with hundreds of nested selections are analyzed in **single-digit milliseconds** thanks to early termination and per-path fragment cycle detection.
+
+## Migrating from v2 to v3
+
+v3 requires Node.js 22.18.0 or newer and supports GraphQL 16 and 17. It adds a default budget of 10,000 expanded selection nodes per operation, including repeated fragment spreads and scalar fields. Previously accepted wide or heavily reused fragment queries may now return `NODE_LIMIT_EXCEEDED`. Set `maxNodes` to a larger positive safe integer if your application needs a higher budget.
+
+Version 3.0.2 fixes validation error-cap handling and selection order, corrects demo operation names, and repairs lint/release checks. Public exports and runtime requirements are unchanged from 3.0.0.
 
 ## Migrating from v1 to v2
 
@@ -543,12 +554,35 @@ depthLimit(10, { directiveMode: "override", useDirective: true });
 
 **Impact:** This is transparent to most users. The only observable difference is that error messages may report the depth at the first violation rather than the deepest violation when multiple branches exceed the limit. If you need the true maximum depth, provide a callback.
 
+## Development and Release Checks
+
+Use Node.js 24 for maintenance and the pinned pnpm version for the library. The demo has its own npm lockfile.
+
+```bash
+npm install --global pnpm@12.15.0
+pnpm install --frozen-lockfile
+pnpm run lint
+pnpm run build
+pnpm run check:consumers
+pnpm run check:package
+pnpm run test:coverage
+pnpm audit
+cd examples/visualization
+npm ci
+npm run build
+npm audit
+```
+
+`check:package` requires a build and registry access. It installs the packed tarball in temporary GraphQL 16/17 consumers, checks ESM/CommonJS runtime behavior and declarations, and removes its temporary files.
+
+Dependabot minor/patch merges wait for CI on the PR head. Automatic library dependency releases require successful branch CI and skip stale commits. For a manual release, first verify CI on the intended commit, then create a matching `v<package.json version>` tag and GitHub release. Publishing uses the existing `RELEASE_TOKEN` for release automation and npm trusted publishing configured for `publish.yml`, with direct publish permission and provenance. Private npm publisher settings and hosted execution require separate verification.
+
 ## Related Packages
 
 This package is part of a suite of GraphQL security tools that work independently or together to protect your API:
 
-| Package | Purpose |
-|---|---|
+| Package                                                                                        | Purpose                                                                         |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | [`graphql-query-complexity-esm`](https://github.com/lafittemehdy/graphql-query-complexity-esm) | Complexity analysis — assign cost scores to fields and reject expensive queries |
 | [`graphql-rate-limit-redis-esm`](https://github.com/lafittemehdy/graphql-rate-limit-redis-esm) | Rate limiting — Redis-backed per-field rate limiting via `@rateLimit` directive |
 
@@ -557,4 +591,3 @@ This package is part of a suite of GraphQL security tools that work independentl
 ## License
 
 [MIT](LICENSE)
-

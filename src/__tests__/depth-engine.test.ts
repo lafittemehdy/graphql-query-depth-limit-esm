@@ -1,4 +1,4 @@
-import { buildSchema, parse, validate } from "graphql";
+import { buildSchema, parse, validate, visit } from "graphql";
 import { describe, expect, it, vi } from "vitest";
 import { calculateDepth, createTraversalCaches, type TraversalConfig } from "../depth-engine.js";
 import { depthLimit } from "../depth-limit.js";
@@ -189,7 +189,7 @@ describe("depth engine", () => {
 			const { context } = createMockContext(query, simpleSchema);
 
 			const rule = depthLimit(10, undefined, callback);
-			rule(context);
+			visit(query, rule(context));
 
 			// "String" is not a composite type → falls back to parent type (SimpleUser)
 			// So friends resolves correctly: user(1) → friends(2) → name = 2
@@ -210,7 +210,7 @@ describe("depth engine", () => {
 			const { context } = createMockContext(query, simpleSchema);
 
 			const rule = depthLimit(10, undefined, callback);
-			rule(context);
+			visit(query, rule(context));
 
 			// NonExistentType not found in schema → falls back to parent type
 			expect(callback).toHaveBeenCalledWith({ Q: 2 });
@@ -245,7 +245,7 @@ describe("depth engine", () => {
 			const { context } = createMockContext(query, simpleSchema);
 
 			const rule = depthLimit(10, undefined, callback);
-			rule(context);
+			visit(query, rule(context));
 
 			// name's selectionSet is skipped because String is not composite.
 			// Only user(1) counts → depth = 1

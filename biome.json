@@ -1,10 +1,10 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.5.15/schema.json",
+	"$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
 	"assist": {
 		"enabled": true
 	},
 	"files": {
-		"includes": ["**", "!coverage", "!dist"]
+		"includes": ["**", "!coverage", "!dist", "!**/pnpm-lock.yaml", "!**/package-lock.json"]
 	},
 	"formatter": {
 		"enabled": true,
