@@ -1,6 +1,6 @@
 {
 	"name": "graphql-query-depth-limit-esm",
-	"version": "3.0.2",
+	"version": "3.0.3",
 	"description": "GraphQL query depth limiting validation rule with directive support, ignore rules, and fragment cycle detection",
 	"author": "Lafitte Mehdy (https://github.com/lafittemehdy)",
 	"license": "MIT",
