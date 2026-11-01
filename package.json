@@ -62,7 +62,7 @@
 		"@vitest/coverage-v8": "^5.0.5",
 		"@vitest/ui": "^5.0.5",
 		"graphql": "^16.14.2",
-		"graphql-yoga": "^5.24.6",
+		"graphql-yoga": "^6.0.1",
 		"husky": "^9.1.7",
 		"tsup": "^9.0.0",
 		"tsx": "^4.23.15",
