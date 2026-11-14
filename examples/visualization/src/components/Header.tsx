@@ -20,7 +20,7 @@ export function Header({ onReplay }: HeaderProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(INSTALL_CMD).then(
+    navigator.clipboard?.writeText(INSTALL_CMD).then(
       () => {
         setCopied(true);
         setTimeout(() => setCopied(false), COPY_FEEDBACK_MS);

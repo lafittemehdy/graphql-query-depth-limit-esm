@@ -21,6 +21,7 @@ interface WelcomePromptProps {
 export function WelcomePrompt({ onPlay, onSkip }: WelcomePromptProps) {
   const [dontShow, setDontShow] = useState(false);
   const ctaRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDialogElement>(null);
 
   const handlePlay = useCallback(() => {
     if (dontShow) disableIntro();
@@ -32,27 +33,24 @@ export function WelcomePrompt({ onPlay, onSkip }: WelcomePromptProps) {
     onSkip();
   }, [dontShow, onSkip]);
 
-  /* Focus the CTA on mount; dismiss on Escape */
+  // Native modality makes background controls inert and restores focus on close.
   useEffect(() => {
+    const dialog = dialogRef.current;
+    dialog?.showModal();
     ctaRef.current?.focus();
-
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        handleSkip();
-      }
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [handleSkip]);
+    return () => dialog?.close();
+  }, []);
 
   return (
-    <div
+    <dialog
       aria-describedby="welcome-desc"
       aria-labelledby="welcome-heading"
-      aria-modal="true"
       className="welcome"
-      role="dialog"
+      onCancel={(event) => {
+        event.preventDefault();
+        handleSkip();
+      }}
+      ref={dialogRef}
     >
       <div className="welcome-content">
         <h1 className="welcome-title" id="welcome-heading">
@@ -82,6 +80,6 @@ export function WelcomePrompt({ onPlay, onSkip }: WelcomePromptProps) {
           <span>Don&apos;t show again</span>
         </label>
       </div>
-    </div>
+    </dialog>
   );
 }

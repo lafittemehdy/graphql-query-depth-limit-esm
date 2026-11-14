@@ -23,7 +23,8 @@ const WARNING_THRESHOLD = 0.6;
 
 /** Copy text to clipboard and invoke the success callback. */
 export function copyToClipboard(text: string, onSuccess: () => void): void {
-  navigator.clipboard.writeText(text).then(onSuccess);
+  // Clipboard access can be absent or denied; never claim success in either case.
+  void navigator.clipboard?.writeText(text).then(onSuccess, () => {});
 }
 
 // ---------------------------------------------------------------------------

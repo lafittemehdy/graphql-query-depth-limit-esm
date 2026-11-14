@@ -4,8 +4,9 @@ allowBuilds:
   "@apollo/protobufjs": true
   esbuild: true
 overrides:
-  "@fastify/busboy": "3.2.3"
-  "qs": "6.16.1"
+  "@graphql-tools/utils@>=10.10.1 <12.0.2": "12.0.2"
+  "@fastify/busboy": "3.2.5"
+  "qs": "6.17.1"
   "source-map-js": "1.2.2"
   "body-parser": "2.4.0"
   "esbuild": "0.28.2"

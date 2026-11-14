@@ -4,7 +4,15 @@
 		"enabled": true
 	},
 	"files": {
-		"includes": ["**", "!coverage", "!dist", "!**/pnpm-lock.yaml", "!**/package-lock.json"]
+		"includes": [
+			"**",
+			"!coverage",
+			"!dist",
+			"!**/test-results",
+			"!**/playwright-report",
+			"!**/pnpm-lock.yaml",
+			"!**/package-lock.json"
+		]
 	},
 	"formatter": {
 		"enabled": true,

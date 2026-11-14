@@ -591,3 +591,7 @@ This package is part of a suite of GraphQL security tools that work independentl
 ## License
 
 [MIT](LICENSE)
+
+## Community
+
+See [Contributing](CONTRIBUTING.md), [Code of Conduct](CODE_OF_CONDUCT.md), and [Security Policy](SECURITY.md).

@@ -1,3 +1,4 @@
+/** Verifies packed runtime, declaration, documentation, and supported GraphQL contracts. */
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import {
@@ -56,8 +57,12 @@ try {
 	assert.equal(packed.name, manifest.name);
 	assert.equal(packed.version, manifest.version);
 	const expectedFiles = [
+		"CHANGELOG.md",
+		"CODE_OF_CONDUCT.md",
+		"CONTRIBUTING.md",
 		"LICENSE",
 		"README.md",
+		"SECURITY.md",
 		"package.json",
 		"dist/index.js",
 		"dist/index.cjs",
@@ -69,7 +74,7 @@ try {
 	assert.deepEqual(packed.files.map((file) => file.path).sort(), expectedFiles.sort());
 	const tarball = join(scratch, packed.filename);
 
-	for (const graphql of ["16.14.2", "17.0.2"]) {
+	for (const graphql of ["16.15.0", "17.1.0"]) {
 		const consumer = join(scratch, `graphql-${graphql}`);
 		mkdirSync(consumer);
 		writeFileSync(

@@ -70,6 +70,14 @@ jobs:
       - run: npm audit
         working-directory: examples/visualization
 
+      - name: Install Chromium for example accessibility checks
+        working-directory: examples/visualization
+        run: npx playwright install --with-deps chromium
+
+      - name: Test example keyboard and responsive behavior
+        working-directory: examples/visualization
+        run: npm run test:browser
+
   ci-success:
     name: CI Success
     runs-on: ubuntu-latest

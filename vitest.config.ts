@@ -1,3 +1,4 @@
+/** Keeps library unit coverage separate from example browser verification. */
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
@@ -7,6 +8,7 @@ export default defineConfig({
 		alias: [{ find: /^graphql$/, replacement: fileURLToPath(import.meta.resolve("graphql")) }],
 	},
 	test: {
+		include: ["src/**/*.test.ts"],
 		coverage: {
 			exclude: ["dist/**", "examples/**", "tsup.config.ts", "vitest.config.ts"],
 			provider: "v8",
