@@ -61,17 +61,17 @@
 	},
 	"devDependencies": {
 		"@apollo/server": "^5.5.2",
-		"@biomejs/biome": "^2.6.7",
+		"@biomejs/biome": "^2.6.8",
 		"@types/node": "^26.6.6",
-		"@vitest/coverage-v8": "^5.1.0",
-		"@vitest/ui": "^5.1.0",
+		"@vitest/coverage-v8": "^5.1.1",
+		"@vitest/ui": "^5.1.1",
 		"graphql": "^16.15.0",
 		"graphql-yoga": "^6.1.0",
 		"husky": "^9.1.7",
 		"tsup": "^9.0.0",
 		"tsx": "^4.23.15",
 		"typescript": "^6.0.3",
-		"vitest": "^5.1.0"
+		"vitest": "^5.1.1"
 	},
 	"scripts": {
 		"build": "tsup",
